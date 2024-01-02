@@ -119,6 +119,7 @@ impl PpmImage {
     }
 }
 
+#[derive(Debug)]
 pub struct PpmWriter<W: Write> {
     stream: BufWriter<W>,
 }
@@ -155,5 +156,80 @@ impl<W: Write> PpmWriter<W> {
         self.stream.flush()?;
 
         Ok(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PpmWriter;
+    use std::io;
+
+    // Dummy buffer used to validate successful writes
+    #[derive(Debug)]
+    struct ImageBuffer {
+        buffer: Vec<u8>,
+    }
+
+    impl ImageBuffer {
+        fn new() -> Self {
+            ImageBuffer { buffer: Vec::new() }
+        }
+    }
+
+    impl io::Write for ImageBuffer {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.buffer.extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn invalid_images() {
+        let data: Vec<[u8; 3]> = vec![
+            [255, 0, 0],
+            [0, 255, 0],
+            [0, 0, 255],
+            [255, 255, 0],
+            [255, 255, 255],
+            [0, 0, 0],
+        ];
+
+        let buffer = ImageBuffer::new();
+        let mut stream = PpmWriter::new(buffer);
+
+        assert!(!stream.write(data.clone(), 3, 0, 255).is_ok());
+        assert!(!stream.write(data.clone(), 0, 2, 255).is_ok());
+        assert!(!stream.write(data.clone(), 3, 3, 255).is_ok());
+        assert!(!stream.write(data.clone(), 2, 2, 255).is_ok());
+        assert!(!stream.write(data.clone(), 3, 2, 0).is_ok());
+        assert!(!stream.write(data.clone(), 3, 2, 65536).is_ok());
+        assert!(!stream.write(data, u32::MAX, u32::MAX, 255).is_ok());
+    }
+
+    #[test]
+    fn valid_images() {
+        let data: Vec<[u8; 3]> = vec![
+            [255, 0, 0],
+            [0, 255, 0],
+            [0, 0, 255],
+            [255, 255, 0],
+            [255, 255, 255],
+            [0, 0, 0],
+        ];
+
+        let mut ppmwriter = PpmWriter::new(ImageBuffer::new());
+        let expected = [
+            80, 54, 10, 51, 32, 50, 32, 50, 53, 53, 10, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255,
+            0, 255, 255, 255, 0, 0, 0,
+        ];
+
+        assert!(ppmwriter.write(data, 3, 2, 255).is_ok());
+
+        let inner = ppmwriter.stream.into_inner().unwrap().buffer;
+        assert_eq!(inner[..], expected[..]);
     }
 }
