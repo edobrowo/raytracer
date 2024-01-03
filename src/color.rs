@@ -76,6 +76,13 @@ impl ops::Mul<f64> for Color {
     }
 }
 
+impl ops::Mul<Color> for f64 {
+    type Output = Color;
+    fn mul(self, c: Color) -> Color {
+        Color::new(self * c[0], self * c[1], self * c[2])
+    }
+}
+
 impl ops::Mul<Color> for Color {
     type Output = Color;
     fn mul(self, other: Color) -> Color {
@@ -124,5 +131,84 @@ impl ops::DivAssign<Color> for Color {
 #[cfg(test)]
 mod tests {
     use super::Color;
-    //
+
+    fn to_p7(f: f64) -> u64 {
+        f64::round(f * 1000000.0) as u64
+    }
+
+    #[test]
+    fn color_general() {
+        let c = Color::new(1.0, 2.0, 3.0);
+        let d = Color::new(4.0, 5.0, 6.0);
+
+        assert_eq!(c[0], 1.0);
+        assert_eq!(c[1], 2.0);
+        assert_eq!(c[2], 3.0);
+
+        assert_eq!(d[0], 4.0);
+        assert_eq!(d[1], 5.0);
+        assert_eq!(d[2], 6.0);
+
+        let u = c + d;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
+        let u = d + c;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
+        let mut u = c;
+        assert_eq!([u[0], u[1], u[2]], [1.0, 2.0, 3.0]);
+        u += d;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
+        u += c;
+        assert_eq!([u[0], u[1], u[2]], [6.0, 9.0, 12.0]);
+
+        let u = c - d;
+        assert_eq!([u[0], u[1], u[2]], [-3.0, -3.0, -3.0]);
+        let u = d - c;
+        assert_eq!([u[0], u[1], u[2]], [3.0, 3.0, 3.0]);
+        let mut u = Color::new(0.0, 0.0, 0.0);
+        u += c + d;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
+        u -= c;
+        assert_eq!([u[0], u[1], u[2]], [4.0, 5.0, 6.0]);
+
+        let u = c * d;
+        assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
+        let u = d * c;
+        assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
+        let u = c / d;
+        assert_eq!(
+            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
+            [to_p7(1.0 / 4.0), to_p7(2.0 / 5.0), to_p7(3.0 / 6.0)]
+        );
+        let u = d / c;
+        assert_eq!(
+            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
+            [to_p7(4.0 / 1.0), to_p7(5.0 / 2.0), to_p7(6.0 / 3.0)]
+        );
+        let mut u = c;
+        u *= d;
+        assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
+        u /= d;
+        assert_eq!([u[0], u[1], u[2]], [1.0, 2.0, 3.0]);
+        u /= d;
+        assert_eq!(
+            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
+            [to_p7(1.0 / 4.0), to_p7(2.0 / 5.0), to_p7(3.0 / 6.0)]
+        );
+
+        let u = 5.0 * c;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
+        let u = c * 5.0;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
+        let mut u = 5.0 * c;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
+        u *= 2.0;
+        assert_eq!([u[0], u[1], u[2]], [10.0, 20.0, 30.0]);
+        u /= 2.0;
+        assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
+        u /= 3.0;
+        assert_eq!(
+            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
+            [to_p7(5.0 / 3.0), to_p7(10.0 / 3.0), to_p7(15.0 / 3.0)]
+        );
+    }
 }
