@@ -7,6 +7,8 @@ pub struct Vec3 {
     len: f64,
 }
 
+pub type Point3 = Vec3;
+
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
         let len = f64::sqrt(x * x + y * y + z * z);

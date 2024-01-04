@@ -2,35 +2,22 @@ use std::fmt;
 use std::ops;
 
 #[derive(Debug, Clone, Copy)]
-enum ChannelKind {
-    Red,
-    Blue,
-    Green,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Channel {
-    val: f64,
-    kind: ChannelKind,
-}
+struct Channel(f64);
 
 impl Channel {
     // Clamp instead of using Option
-    pub fn new(val: f64, kind: ChannelKind) -> Channel {
+    pub fn new(val: f64) -> Channel {
         if 0.0 <= val && val < 1.0 {
-            Channel { val, kind }
+            Channel(val)
         } else if val < 0.0 {
-            Channel { val: 0.0, kind }
+            Channel(0.0)
         } else {
-            Channel {
-                val: 1.0 - f64::EPSILON,
-                kind,
-            }
+            Channel(1.0 - f64::EPSILON)
         }
     }
 
     pub fn to_byte(&self) -> u8 {
-        let val = f64::round(self.val * 256.0) as u16;
+        let val = f64::round(self.0 * 256.0) as u16;
         let val = if val > 255 { 255 } else { val };
         val as u8
     }
@@ -44,11 +31,7 @@ pub struct Color {
 impl Color {
     pub fn new(r: f64, g: f64, b: f64) -> Color {
         Color {
-            e: [
-                Channel::new(r, ChannelKind::Red),
-                Channel::new(g, ChannelKind::Green),
-                Channel::new(b, ChannelKind::Blue),
-            ],
+            e: [Channel::new(r), Channel::new(g), Channel::new(b)],
         }
     }
 
@@ -82,13 +65,13 @@ impl fmt::Display for Color {
 impl ops::Index<usize> for Color {
     type Output = f64;
     fn index<'a>(&'a self, i: usize) -> &'a f64 {
-        &self.e[i].val
+        &self.e[i].0
     }
 }
 
 impl ops::IndexMut<usize> for Color {
     fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut f64 {
-        &mut self.e[i].val
+        &mut self.e[i].0
     }
 }
 
