@@ -5,17 +5,18 @@ use std::ops;
 struct Channel(f64);
 
 impl Channel {
-    // Clamp instead of using Option
     pub fn new(val: f64) -> Channel {
-        if 0.0 <= val && val < 1.0 {
+        Channel(val)
+        /*if 0.0 <= val && val < 1.0 {
             Channel(val)
         } else if val < 0.0 {
             Channel(0.0)
         } else {
             Channel(1.0 - f64::EPSILON)
-        }
+        }*/
     }
 
+    // TODO: need to ensure val is in [0, 1]
     pub fn to_byte(&self) -> u8 {
         let val = f64::round(self.0 * 256.0) as u16;
         let val = if val > 255 { 255 } else { val };

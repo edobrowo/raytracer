@@ -35,20 +35,20 @@ impl Vec3 {
         self.len * self.len
     }
 
-    pub fn dot(&self, other: &Vec3) -> f64 {
-        self[0] * other[0] + self[1] + other[1] + self[2] + other[2]
+    pub fn dot(v: &Vec3, w: &Vec3) -> f64 {
+        v[0] * w[0] + v[1] * w[1] + v[2] * w[2]
     }
 
-    pub fn cross(&self, other: &Vec3) -> Vec3 {
+    pub fn cross(v: &Vec3, w: &Vec3) -> Vec3 {
         Vec3::new(
-            self[1] * other[2] - self[2] * other[1],
-            self[2] * other[0] - self[0] * other[2],
-            self[0] * other[1] - self[1] * other[0],
+            v[1] * w[2] - v[2] * w[1],
+            v[2] * w[0] - v[0] * w[2],
+            v[0] * w[1] - v[1] * w[0],
         )
     }
 
-    pub fn unit(&self) -> Vec3 {
-        *self / self.len
+    pub fn unit(v: &Vec3) -> Vec3 {
+        *v / v.len()
     }
 }
 
@@ -171,6 +171,10 @@ mod tests {
         f64::round(f * 1000000.0) as u64
     }
 
+    fn to_3p7(c: [f64; 3]) -> [u64; 3] {
+        [to_p7(c[0]), to_p7(c[1]), to_p7(c[2])]
+    }
+
     #[test]
     fn vec3_general() {
         let v = Vec3::new(1.0, 2.0, 3.0);
@@ -218,13 +222,13 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
         let u = v / w;
         assert_eq!(
-            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
-            [to_p7(1.0 / 4.0), to_p7(2.0 / 5.0), to_p7(3.0 / 6.0)]
+            to_3p7([u[0], u[1], u[2]]),
+            to_3p7([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
         );
         let u = w / v;
         assert_eq!(
-            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
-            [to_p7(4.0 / 1.0), to_p7(5.0 / 2.0), to_p7(6.0 / 3.0)]
+            to_3p7([u[0], u[1], u[2]]),
+            to_3p7([4.0 / 1.0, 5.0 / 2.0, 6.0 / 3.0])
         );
         let mut u = v;
         u *= w;
@@ -233,8 +237,8 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [1.0, 2.0, 3.0]);
         u /= w;
         assert_eq!(
-            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
-            [to_p7(1.0 / 4.0), to_p7(2.0 / 5.0), to_p7(3.0 / 6.0)]
+            to_3p7([u[0], u[1], u[2]]),
+            to_3p7([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
         );
 
         let u = 5.0 * v;
@@ -249,8 +253,21 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
         u /= 3.0;
         assert_eq!(
-            [to_p7(u[0]), to_p7(u[1]), to_p7(u[2])],
-            [to_p7(5.0 / 3.0), to_p7(10.0 / 3.0), to_p7(15.0 / 3.0)]
+            to_3p7([u[0], u[1], u[2]]),
+            to_3p7([5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0])
         );
+
+        let u = Vec3::unit(&u);
+        assert_eq!(to_3p7([u[0], u[1], u[2]]), [267261, 534522, 801784]);
+
+        let u = Vec3::dot(&v, &w);
+        assert_eq!(u, 32.0);
+        let u = Vec3::dot(&w, &v);
+        assert_eq!(u, 32.0);
+
+        let u = Vec3::cross(&v, &w);
+        assert_eq!([u[0], u[1], u[2]], [-3.0, 6.0, -3.0]);
+        let u = Vec3::cross(&w, &v);
+        assert_eq!([u[0], u[1], u[2]], [3.0, -6.0, 3.0]);
     }
 }
