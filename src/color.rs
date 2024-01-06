@@ -48,7 +48,7 @@ impl Color {
         self[2]
     }
 
-    pub fn to_bytes(&self) -> [u8; 3] {
+    pub fn to_rgb24(&self) -> [u8; 3] {
         [
             self.e[0].to_byte(),
             self.e[1].to_byte(),
@@ -181,12 +181,12 @@ mod tests {
         assert_eq!(to_p7(c[0]), to_p7(0.1));
         assert_eq!(to_p7(c[1]), to_p7(0.2));
         assert_eq!(to_p7(c[2]), to_p7(0.3));
-        assert_eq!(c.to_bytes(), [26, 51, 77]);
+        assert_eq!(c.to_rgb24(), [26, 51, 77]);
 
         assert_eq!(to_p7(d[0]), to_p7(0.4));
         assert_eq!(to_p7(d[1]), to_p7(0.5));
         assert_eq!(to_p7(d[2]), to_p7(0.6));
-        assert_eq!(d.to_bytes(), [102, 128, 154]);
+        assert_eq!(d.to_rgb24(), [102, 128, 154]);
 
         let u = c + d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.5, 0.7, 0.9]));
@@ -197,10 +197,7 @@ mod tests {
         u += d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.5, 0.7, 0.9]));
         u += c;
-        assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([0.6, 0.9, 1.0 - f64::EPSILON])
-        );
+        assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.6, 0.9, 1.2]));
 
         let u = c - d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.0, 0.0, 0.0]));
@@ -222,10 +219,7 @@ mod tests {
             to_3p7([0.1 / 0.4, 0.2 / 0.5, 0.3 / 0.6])
         );
         let u = d / c;
-        assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([1.0 - f64::EPSILON, 1.0 - f64::EPSILON, 1.0 - f64::EPSILON])
-        );
+        assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([4.0, 2.5, 2.0]));
         let mut u = c;
         u *= d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.04, 0.1, 0.18]));

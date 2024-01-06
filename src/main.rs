@@ -1,38 +1,22 @@
 use raytracer_ow::Color;
-use raytracer_ow::PpmWriter;
+use raytracer_ow::Interval;
 use raytracer_ow::Ray;
+use raytracer_ow::{Hittable, HittableList, Sphere};
 use raytracer_ow::{Point3, Vec3};
 use std::error::Error;
-use std::fs::File;
 
-fn gen_ppm(path: &str, data: &Vec<Color>, width: u32, height: u32) -> Result<(), Box<dyn Error>> {
-    let data = data.iter().map(|color| color.to_bytes()).collect();
-    let file = File::create(path)?;
-    let mut ppmstream = PpmWriter::new(file);
-    ppmstream.write(data, width, height, 255)?;
-    Ok(())
-}
-
-fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> f64 {
-    let oc = *ray.origin() - center;
-    let a = ray.direction().len_sqr();
-    let half_b = Vec3::dot(&oc, ray.direction());
-    let c = oc.len_sqr() - radius * radius;
-    let discriminant = half_b * half_b - a * c;
-
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (-half_b - f64::sqrt(discriminant)) / a
+fn ray_color<T: Hittable>(ray: Ray, world: &HittableList<T>) -> Color {
+    if let Some(rec) = world.hit(
+        &ray,
+        Interval {
+            min: 0.0,
+            max: f64::INFINITY,
+        },
+    ) {
+        let n = rec.normal;
+        return 0.5 * (Color::new(n[0], n[1], n[2]) + Color::new(1.0, 1.0, 1.0));
     }
-}
 
-fn ray_color(ray: Ray) -> Color {
-    let t = hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, &ray);
-    if t > 0.0 {
-        let normal = Vec3::unit(&(ray.at(t) - Vec3::new(0.0, 0.0, -1.0)));
-        return 0.5 * Color::new(normal.x() + 1.0, normal.y() + 1.0, normal.z() + 1.0);
-    }
     let unit_dir = Vec3::unit(&ray.direction());
     let a = 0.5 * (unit_dir.y() + 1.0);
     (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
@@ -43,6 +27,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let image_height = f64::max(image_width as f64 / aspect_ratio, 1.0) as u32;
+
+    // World
+    let mut world = HittableList::new();
+    world.add(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5));
+    world.add(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0));
 
     // Camera
     let focal_length = 1.0;
@@ -72,12 +61,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             let ray_direction = pixel_center - camera_center;
             let r = Ray::new(camera_center, ray_direction);
 
-            let pixel_color = ray_color(r);
+            let pixel_color = ray_color(r, &world);
             data.push(pixel_color);
         }
     }
 
-    gen_ppm("test.ppm", &data, image_width, image_height)?;
+    raytracer_ow::create_ppm("scene.ppm", &data, image_width, image_height)?;
 
     Ok(())
 }
