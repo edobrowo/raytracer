@@ -11,7 +11,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Camera
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
-    let camera = Camera::new(aspect_ratio, image_width)?;
+    let samples_per_pixel = 10;
+    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel)?;
 
     // Render
     let data = camera.render(&world);

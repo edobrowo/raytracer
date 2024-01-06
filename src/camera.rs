@@ -1,3 +1,4 @@
+use rand::{self, Rng};
 use std::error::Error;
 use std::fmt;
 
@@ -49,6 +50,18 @@ impl AspectRatio {
     }
 }
 
+struct SamplesCount(u32);
+
+impl SamplesCount {
+    pub fn new(val: u32) -> Result<SamplesCount, CameraError> {
+        if val > 0 {
+            Ok(SamplesCount(val))
+        } else {
+            Err(CameraError::from("aspect ratio must be greater than 0"))
+        }
+    }
+}
+
 pub struct Camera {
     aspect_ratio: AspectRatio,
     image_width: ImageDim,
@@ -57,12 +70,18 @@ pub struct Camera {
     pixel00_loc: Point3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    samples_per_pixel: SamplesCount,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32) -> Result<Camera, CameraError> {
+    pub fn new(
+        aspect_ratio: f64,
+        image_width: u32,
+        samples_per_pixel: u32,
+    ) -> Result<Camera, CameraError> {
         let image_width = ImageDim::new(image_width)?;
         let aspect_ratio = AspectRatio::new(aspect_ratio)?;
+        let samples_per_pixel = SamplesCount::new(samples_per_pixel)?;
 
         // Image
         let image_height =
@@ -95,6 +114,7 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
+            samples_per_pixel,
         })
     }
 
@@ -106,17 +126,33 @@ impl Camera {
         let mut data: Vec<Color> = Vec::new();
         for row in 0..self.image_height.0 {
             for col in 0..self.image_width.0 {
-                let pixel_center = self.pixel00_loc
-                    + (col as f64 * self.pixel_delta_u)
-                    + (row as f64 * self.pixel_delta_v);
-                let ray_direction = pixel_center - self.center;
-                let r = Ray::new(self.center, ray_direction);
-
-                let pixel_color = Camera::ray_color(r, world);
-                data.push(pixel_color);
+                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                for _ in 0..self.samples_per_pixel.0 {
+                    let ray = self.get_ray(row, col);
+                    pixel_color += Camera::ray_color(ray, world);
+                }
+                data.push(pixel_color / self.samples_per_pixel.0 as f64);
             }
         }
         data
+    }
+
+    fn get_ray(&self, row: u32, col: u32) -> Ray {
+        let pixel_center = self.pixel00_loc
+            + (col as f64 * self.pixel_delta_u)
+            + (row as f64 * self.pixel_delta_v);
+        let pixel_sample = pixel_center + self.pixel_sample_square();
+
+        let ray_origin = self.center;
+        let ray_direction = pixel_sample - self.center;
+
+        Ray::new(ray_origin, ray_direction)
+    }
+
+    fn pixel_sample_square(&self) -> Vec3 {
+        let px = -0.5 * rand::thread_rng().gen::<f64>();
+        let py = -0.5 * rand::thread_rng().gen::<f64>();
+        px * self.pixel_delta_u + py * self.pixel_delta_v
     }
 
     fn ray_color<T: Hittable>(ray: Ray, world: &T) -> Color {

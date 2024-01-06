@@ -1,25 +1,23 @@
 use std::fmt;
 use std::ops;
 
+use crate::Interval;
+
+const INTENSITY: Interval = Interval {
+    min: 0.0,
+    max: 0.999,
+};
+
 #[derive(Debug, Clone, Copy)]
 struct Channel(f64);
 
 impl Channel {
     pub fn new(val: f64) -> Channel {
         Channel(val)
-        /*if 0.0 <= val && val < 1.0 {
-            Channel(val)
-        } else if val < 0.0 {
-            Channel(0.0)
-        } else {
-            Channel(1.0 - f64::EPSILON)
-        }*/
     }
 
-    // TODO: need to ensure val is in [0, 1]
     pub fn to_byte(&self) -> u8 {
-        let val = f64::round(self.0 * 256.0) as u16;
-        let val = if val > 255 { 255 } else { val };
+        let val = f64::floor(INTENSITY.clamp(self.0) * 256.0) as u16;
         val as u8
     }
 }
@@ -181,12 +179,12 @@ mod tests {
         assert_eq!(to_p7(c[0]), to_p7(0.1));
         assert_eq!(to_p7(c[1]), to_p7(0.2));
         assert_eq!(to_p7(c[2]), to_p7(0.3));
-        assert_eq!(c.to_rgb24(), [26, 51, 77]);
+        assert_eq!(c.to_rgb24(), [25, 51, 76]);
 
         assert_eq!(to_p7(d[0]), to_p7(0.4));
         assert_eq!(to_p7(d[1]), to_p7(0.5));
         assert_eq!(to_p7(d[2]), to_p7(0.6));
-        assert_eq!(d.to_rgb24(), [102, 128, 154]);
+        assert_eq!(d.to_rgb24(), [102, 128, 153]);
 
         let u = c + d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.5, 0.7, 0.9]));

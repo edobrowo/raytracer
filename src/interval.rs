@@ -31,6 +31,10 @@ impl Interval {
     pub fn surrounds(&self, x: f64) -> bool {
         self.min < x && x < self.max
     }
+
+    pub fn clamp(&self, x: f64) -> f64 {
+        f64::max(self.min, f64::min(x, self.max))
+    }
 }
 
 #[cfg(test)]
@@ -44,14 +48,18 @@ mod tests {
         assert!(int.contains(0.0));
         assert!(int.contains(-2.0));
         assert!(int.contains(5.0));
-        assert!(!int.contains(-3.1));
+        assert!(!int.contains(-2.1));
         assert!(!int.contains(5.1));
 
         assert!(int.surrounds(0.0));
         assert!(!int.surrounds(-2.0));
         assert!(!int.surrounds(5.0));
-        assert!(!int.surrounds(-3.1));
+        assert!(!int.surrounds(-2.1));
         assert!(!int.surrounds(5.1));
+
+        assert_eq!(int.clamp(3.0), 3.0);
+        assert_eq!(int.clamp(-2.1), -2.0);
+        assert_eq!(int.clamp(5.1), 5.0);
 
         assert!(!Interval::EMPTY.contains(0.0));
         assert!(!Interval::EMPTY.contains(1000000.0));
