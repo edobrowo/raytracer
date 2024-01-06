@@ -1,3 +1,4 @@
+mod camera;
 mod color;
 mod hittable;
 mod interval;
@@ -6,6 +7,7 @@ mod ray;
 mod sphere;
 mod vec3;
 
+pub use camera::Camera;
 pub use color::Color;
 pub use hittable::{HitRecord, Hittable, HittableList};
 pub use interval::Interval;
