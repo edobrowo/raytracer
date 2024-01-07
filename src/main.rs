@@ -1,4 +1,7 @@
-use raytracer_ow::{Camera, HittableList, Point3, Sphere};
+use raytracer_ow::camera::Camera;
+use raytracer_ow::hittable::HittableList;
+use raytracer_ow::sphere::Sphere;
+use raytracer_ow::Point3;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {

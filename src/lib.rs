@@ -1,20 +1,16 @@
-mod camera;
-mod color;
-mod hittable;
-mod interval;
-mod netbpm;
-mod ray;
-mod sphere;
-mod vec3;
+pub mod camera;
+pub mod color;
+pub mod hittable;
+pub mod interval;
+pub mod netbpm;
+pub mod ray;
+pub mod sphere;
+pub mod vec3;
 
-pub use camera::Camera;
 pub use color::Color;
-pub use hittable::{HitRecord, Hittable, HittableList};
 pub use interval::Interval;
-pub use netbpm::PpmWriter;
 pub use ray::Ray;
-pub use sphere::Sphere;
-pub use vec3::{random_on_hemisphere, Point3, Vec3};
+pub use vec3::{Point3, Vec3};
 
 use std::error::Error;
 use std::fs::File;
@@ -26,7 +22,7 @@ where
 {
     let data = data.iter().map(|color| color.to_rgb24()).collect();
     let file = File::create(path)?;
-    let mut ppmstream = PpmWriter::new(file);
+    let mut ppmstream = netbpm::PpmWriter::new(file);
     ppmstream.write(data, w, h, 255)?;
     Ok(())
 }

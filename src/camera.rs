@@ -2,7 +2,7 @@ use rand::{self, Rng};
 use std::error::Error;
 use std::fmt;
 
-use crate::{random_on_hemisphere, Color, Hittable, Interval, Point3, Ray, Vec3};
+use crate::{hittable::Hittable, vec3, Color, Interval, Point3, Ray, Vec3};
 
 #[derive(Debug, Clone)]
 pub struct CameraError {
@@ -158,7 +158,7 @@ impl Camera {
     fn ray_color<T: Hittable>(ray: Ray, world: &T) -> Color {
         if let Some(rec) = world.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
             let n = rec.normal;
-            let direction = random_on_hemisphere(&n);
+            let direction = vec3::random_on_hemisphere(&n);
             return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), world);
         }
 
