@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Save
     let (image_width, image_height) = camera.dim();
-    raytracer_ow::create_ppm("scene.ppm", &data, image_width.0, image_height.0)?;
+    raytracer_ow::create_ppm("sample.ppm", &data, image_width.0, image_height.0)?;
 
     Ok(())
 }

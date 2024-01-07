@@ -1,3 +1,4 @@
+use rand::{self, Rng};
 use std::fmt;
 use std::ops;
 
@@ -160,6 +161,40 @@ impl ops::DivAssign<f64> for Vec3 {
 impl ops::DivAssign<Vec3> for Vec3 {
     fn div_assign(&mut self, other: Vec3) {
         *self = *self / other
+    }
+}
+
+pub fn random() -> Vec3 {
+    Vec3::new(
+        rand::thread_rng().gen::<f64>(),
+        rand::thread_rng().gen::<f64>(),
+        rand::thread_rng().gen::<f64>(),
+    )
+}
+
+pub fn random_in_range(min: f64, max: f64) -> Vec3 {
+    Vec3::new(min, min, min) + (max - min) * random()
+}
+
+pub fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = random_in_range(-1.0, 1.0);
+        if p.len_sqr() < 1.0 {
+            return p;
+        }
+    }
+}
+
+pub fn random_unit() -> Vec3 {
+    Vec3::unit(&random_in_unit_sphere())
+}
+
+pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+    let u = random_unit();
+    if Vec3::dot(&u, normal) > 0.0 {
+        u
+    } else {
+        -u
     }
 }
 

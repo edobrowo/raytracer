@@ -6,7 +6,7 @@ pub enum Face {
 }
 
 pub struct HitRecord {
-    p: Point3,
+    pub p: Point3,
     pub normal: Vec3,
     t: f64,
     face: Face,
