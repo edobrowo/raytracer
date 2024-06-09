@@ -1,27 +1,23 @@
+#![allow(dead_code)]
+
+#[derive(Debug)]
 pub struct Interval {
     pub min: f64,
     pub max: f64,
 }
 
 impl Interval {
-    const EMPTY: Interval = Interval {
+    const EMPTY: Self = Self {
         min: f64::INFINITY,
         max: f64::NEG_INFINITY,
     };
-    const UNIVERSE: Interval = Interval {
+    const UNIVERSE: Self = Self {
         min: f64::NEG_INFINITY,
         max: f64::INFINITY,
     };
 
-    pub fn new(min: f64, max: f64) -> Interval {
+    pub fn new(min: f64, max: f64) -> Self {
         Interval { min, max }
-    }
-
-    pub fn default() -> Interval {
-        Interval {
-            min: f64::INFINITY,
-            max: f64::NEG_INFINITY,
-        }
     }
 
     pub fn contains(&self, x: f64) -> bool {
@@ -33,7 +29,13 @@ impl Interval {
     }
 
     pub fn clamp(&self, x: f64) -> f64 {
-        f64::max(self.min, f64::min(x, self.max))
+        if x < self.min {
+            self.min
+        } else if x > self.max {
+            self.max
+        } else {
+            x
+        }
     }
 }
 

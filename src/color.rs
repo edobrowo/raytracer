@@ -12,25 +12,40 @@ const INTENSITY: Interval = Interval {
 struct Channel(f64);
 
 impl Channel {
-    pub fn new(val: f64) -> Channel {
-        Channel(val)
+    pub fn new(val: f64) -> Self {
+        Self(val)
     }
 
-    pub fn to_byte(&self) -> u8 {
-        let val = f64::floor(INTENSITY.clamp(self.0) * 256.0) as u16;
-        val as u8
+    pub fn make_byte(&self) -> u8 {
+        f64::floor(INTENSITY.clamp(self.0) * 255.0) as u8
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
-    e: [Channel; 3],
+    e: [Channel; 4],
 }
 
 impl Color {
-    pub fn new(r: f64, g: f64, b: f64) -> Color {
-        Color {
-            e: [Channel::new(r), Channel::new(g), Channel::new(b)],
+    pub fn new_rgb(r: f64, g: f64, b: f64) -> Self {
+        Self {
+            e: [
+                Channel::new(r),
+                Channel::new(g),
+                Channel::new(b),
+                Channel::new(1.0),
+            ],
+        }
+    }
+
+    pub fn new_rgba(r: f64, g: f64, b: f64, a: f64) -> Self {
+        Self {
+            e: [
+                Channel::new(r),
+                Channel::new(g),
+                Channel::new(b),
+                Channel::new(a),
+            ],
         }
     }
 
@@ -48,9 +63,18 @@ impl Color {
 
     pub fn to_rgb24(&self) -> [u8; 3] {
         [
-            self.e[0].to_byte(),
-            self.e[1].to_byte(),
-            self.e[2].to_byte(),
+            self.e[0].make_byte(),
+            self.e[1].make_byte(),
+            self.e[2].make_byte(),
+        ]
+    }
+
+    pub fn to_rgb32(&self) -> [u8; 4] {
+        [
+            self.e[0].make_byte(),
+            self.e[1].make_byte(),
+            self.e[2].make_byte(),
+            self.e[3].make_byte(),
         ]
     }
 }
@@ -63,13 +87,13 @@ impl fmt::Display for Color {
 
 impl ops::Index<usize> for Color {
     type Output = f64;
-    fn index<'a>(&'a self, i: usize) -> &'a f64 {
+    fn index(&self, i: usize) -> &f64 {
         &self.e[i].0
     }
 }
 
 impl ops::IndexMut<usize> for Color {
-    fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut f64 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
         &mut self.e[i].0
     }
 }
@@ -77,14 +101,14 @@ impl ops::IndexMut<usize> for Color {
 impl ops::Add for Color {
     type Output = Color;
     fn add(self, other: Color) -> Color {
-        Color::new(self[0] + other[0], self[1] + other[1], self[2] + other[2])
+        Color::new_rgb(self[0] + other[0], self[1] + other[1], self[2] + other[2])
     }
 }
 
 impl ops::Sub for Color {
     type Output = Color;
     fn sub(self, other: Color) -> Color {
-        Color::new(self[0] - other[0], self[1] - other[1], self[2] - other[2])
+        Color::new_rgb(self[0] - other[0], self[1] - other[1], self[2] - other[2])
     }
 }
 
@@ -103,21 +127,21 @@ impl ops::SubAssign for Color {
 impl ops::Mul<f64> for Color {
     type Output = Color;
     fn mul(self, f: f64) -> Color {
-        Color::new(self[0] * f, self[1] * f, self[2] * f)
+        Color::new_rgb(self[0] * f, self[1] * f, self[2] * f)
     }
 }
 
 impl ops::Mul<Color> for f64 {
     type Output = Color;
     fn mul(self, c: Color) -> Color {
-        Color::new(self * c[0], self * c[1], self * c[2])
+        Color::new_rgb(self * c[0], self * c[1], self * c[2])
     }
 }
 
 impl ops::Mul<Color> for Color {
     type Output = Color;
     fn mul(self, other: Color) -> Color {
-        Color::new(self[0] * other[0], self[1] * other[1], self[2] * other[2])
+        Color::new_rgb(self[0] * other[0], self[1] * other[1], self[2] * other[2])
     }
 }
 
@@ -143,13 +167,13 @@ impl ops::Div<f64> for Color {
 impl ops::Div<Color> for Color {
     type Output = Color;
     fn div(self, other: Color) -> Color {
-        Color::new(self[0] / other[0], self[1] / other[1], self[2] / other[2])
+        Color::new_rgb(self[0] / other[0], self[1] / other[1], self[2] / other[2])
     }
 }
 
 impl ops::DivAssign<f64> for Color {
     fn div_assign(&mut self, f: f64) {
-        *self = *self * (1.0 / f)
+        *self *= 1.0 / f
     }
 }
 
@@ -173,8 +197,8 @@ mod tests {
 
     #[test]
     fn color_general() {
-        let c = Color::new(0.1, 0.2, 0.3);
-        let d = Color::new(0.4, 0.5, 0.6);
+        let c = Color::new_rgb(0.1, 0.2, 0.3);
+        let d = Color::new_rgb(0.4, 0.5, 0.6);
 
         assert_eq!(to_p7(c[0]), to_p7(0.1));
         assert_eq!(to_p7(c[1]), to_p7(0.2));
@@ -201,7 +225,7 @@ mod tests {
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.0, 0.0, 0.0]));
         let u = d - c;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.3, 0.3, 0.3]));
-        let mut u = Color::new(0.0, 0.0, 0.0);
+        let mut u = Color::new_rgb(0.0, 0.0, 0.0);
         u += c + d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.5, 0.7, 0.9]));
         u -= c;

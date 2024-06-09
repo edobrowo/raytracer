@@ -3,25 +3,25 @@ use std::fmt;
 use std::io::{BufWriter, Write};
 
 #[derive(Debug, Clone)]
-struct PpmError {
+struct NetpbmError {
     message: String,
 }
 
-impl PpmError {
-    pub fn from(message: &str) -> PpmError {
-        PpmError {
+impl NetpbmError {
+    pub fn from(message: &str) -> Self {
+        Self {
             message: message.to_string(),
         }
     }
 }
 
-impl fmt::Display for PpmError {
+impl fmt::Display for NetpbmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PPM error: {}", self.message)
+        write!(f, "netpbm error: {}", self.message)
     }
 }
 
-impl Error for PpmError {}
+impl Error for NetpbmError {}
 
 const PPM_BITDEPTH_MIN: u32 = 1;
 const PPM_BITDEPTH_MAX: u32 = 65535;
@@ -29,11 +29,11 @@ const PPM_BITDEPTH_MAX: u32 = 65535;
 struct PpmBitDepth(u32);
 
 impl PpmBitDepth {
-    pub fn new(val: u32) -> Result<PpmBitDepth, PpmError> {
-        if PPM_BITDEPTH_MIN <= val && val <= PPM_BITDEPTH_MAX {
-            Ok(PpmBitDepth(val))
+    pub fn new(val: u32) -> Result<Self, NetpbmError> {
+        if (PPM_BITDEPTH_MIN..=PPM_BITDEPTH_MAX).contains(&val) {
+            Ok(Self(val))
         } else {
-            Err(PpmError::from(
+            Err(NetpbmError::from(
                 format!(
                     "bitdepth must fall within the range [{},{}]",
                     PPM_BITDEPTH_MIN, PPM_BITDEPTH_MAX
@@ -53,11 +53,11 @@ impl fmt::Display for PpmBitDepth {
 struct PpmDim(u32);
 
 impl PpmDim {
-    pub fn new(val: u32) -> Result<PpmDim, PpmError> {
+    pub fn new(val: u32) -> Result<Self, NetpbmError> {
         if val > 0 {
-            Ok(PpmDim(val))
+            Ok(Self(val))
         } else {
-            Err(PpmError::from("image width must be greater than 0"))
+            Err(NetpbmError::from("image dimension must be greater than 0"))
         }
     }
 }
@@ -83,13 +83,13 @@ impl PpmImage {
         width: u32,
         height: u32,
         bitdepth: u32,
-    ) -> Result<PpmImage, PpmError> {
+    ) -> Result<PpmImage, NetpbmError> {
         let width = PpmDim::new(width)?;
         let height = PpmDim::new(height)?;
         let bitdepth = PpmBitDepth::new(bitdepth)?;
 
         if data.len() as u64 != width.0 as u64 * height.0 as u64 {
-            return Err(PpmError::from(
+            return Err(NetpbmError::from(
                 format!(
                     "color vector size ({}) does not match dimensions ({}*{}={})",
                     data.len(),
@@ -103,7 +103,7 @@ impl PpmImage {
 
         for color in data.iter() {
             if let Some(chan) = color.iter().find(|&&chan| chan as u32 > bitdepth.0) {
-                return Err(PpmError::from(
+                return Err(NetpbmError::from(
                     format!("channel value {chan} is invalid, expected channel<={bitdepth}")
                         .as_str(),
                 ));
@@ -139,18 +139,19 @@ impl<W: Write> PpmWriter<W> {
     ) -> Result<usize, Box<dyn Error>> {
         let image = PpmImage::from(data, width, height, bitdepth)?;
 
-        self.stream.write(PpmImage::MAGIC_NUMBER)?;
-        self.stream.write(b"\n")?;
-        self.stream.write(image.width.to_string().as_bytes())?;
-        self.stream.write(b" ")?;
-        self.stream.write(image.height.to_string().as_bytes())?;
-        self.stream.write(b" ")?;
-        self.stream.write(image.bitdepth.to_string().as_bytes())?;
-        self.stream.write(b"\n")?;
+        self.stream.write_all(PpmImage::MAGIC_NUMBER)?;
+        self.stream.write_all(b"\n")?;
+        self.stream.write_all(image.width.to_string().as_bytes())?;
+        self.stream.write_all(b" ")?;
+        self.stream.write_all(image.height.to_string().as_bytes())?;
+        self.stream.write_all(b" ")?;
+        self.stream
+            .write_all(image.bitdepth.to_string().as_bytes())?;
+        self.stream.write_all(b"\n")?;
 
         for color in image.data {
             // TODO: If bit depth is less than 256, 1 byte is used per channel. Otherwise 2 bytes is used, MSB first.
-            self.stream.write(&color[..])?;
+            self.stream.write_all(&color[..])?;
         }
 
         self.stream.flush()?;

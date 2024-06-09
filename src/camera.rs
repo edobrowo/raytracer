@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use rand::{self, Rng};
 use std::error::Error;
 use std::fmt;
@@ -10,8 +12,8 @@ pub struct CameraError {
 }
 
 impl CameraError {
-    pub fn from(message: &str) -> CameraError {
-        CameraError {
+    pub fn from(message: &str) -> Self {
+        Self {
             message: message.to_string(),
         }
     }
@@ -29,9 +31,9 @@ impl Error for CameraError {}
 pub struct ImageDim(pub u32);
 
 impl ImageDim {
-    pub fn new(val: u32) -> Result<ImageDim, CameraError> {
+    pub fn new(val: u32) -> Result<Self, CameraError> {
         if val > 0 {
-            Ok(ImageDim(val))
+            Ok(Self(val))
         } else {
             Err(CameraError::from("image width must be greater than 0"))
         }
@@ -41,9 +43,9 @@ impl ImageDim {
 struct AspectRatio(f64);
 
 impl AspectRatio {
-    pub fn new(val: f64) -> Result<AspectRatio, CameraError> {
+    pub fn new(val: f64) -> Result<Self, CameraError> {
         if val > 0.0 {
-            Ok(AspectRatio(val))
+            Ok(Self(val))
         } else {
             Err(CameraError::from("aspect ratio must be greater than 0"))
         }
@@ -53,9 +55,9 @@ impl AspectRatio {
 struct SamplesCount(u32);
 
 impl SamplesCount {
-    pub fn new(val: u32) -> Result<SamplesCount, CameraError> {
+    pub fn new(val: u32) -> Result<Self, CameraError> {
         if val > 0 {
-            Ok(SamplesCount(val))
+            Ok(Self(val))
         } else {
             Err(CameraError::from("aspect ratio must be greater than 0"))
         }
@@ -78,7 +80,7 @@ impl Camera {
         aspect_ratio: f64,
         image_width: u32,
         samples_per_pixel: u32,
-    ) -> Result<Camera, CameraError> {
+    ) -> Result<Self, CameraError> {
         let image_width = ImageDim::new(image_width)?;
         let aspect_ratio = AspectRatio::new(aspect_ratio)?;
         let samples_per_pixel = SamplesCount::new(samples_per_pixel)?;
@@ -106,7 +108,7 @@ impl Camera {
             center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
-        Ok(Camera {
+        Ok(Self {
             aspect_ratio,
             image_width,
             image_height,
@@ -126,7 +128,7 @@ impl Camera {
         let mut data: Vec<Color> = Vec::new();
         for row in 0..self.image_height.0 {
             for col in 0..self.image_width.0 {
-                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                let mut pixel_color = Color::new_rgb(0.0, 0.0, 0.0);
                 for _ in 0..self.samples_per_pixel.0 {
                     let ray = self.get_ray(row, col);
                     pixel_color += Camera::ray_color(ray, world);
@@ -162,8 +164,8 @@ impl Camera {
             return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), world);
         }
 
-        let unit_dir = Vec3::unit(&ray.direction());
+        let unit_dir = Vec3::unit(ray.direction());
         let a = 0.5 * (unit_dir.y() + 1.0);
-        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+        (1.0 - a) * Color::new_rgb(1.0, 1.0, 1.0) + a * Color::new_rgb(0.5, 0.7, 1.0)
     }
 }

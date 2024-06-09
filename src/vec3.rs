@@ -11,9 +11,9 @@ pub struct Vec3 {
 pub type Point3 = Vec3;
 
 impl Vec3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
         let len = f64::sqrt(x * x + y * y + z * z);
-        Vec3 { e: [x, y, z], len }
+        Self { e: [x, y, z], len }
     }
 
     pub fn x(&self) -> f64 {
@@ -36,19 +36,19 @@ impl Vec3 {
         self.len * self.len
     }
 
-    pub fn dot(v: &Vec3, w: &Vec3) -> f64 {
+    pub fn dot(v: &Self, w: &Self) -> f64 {
         v[0] * w[0] + v[1] * w[1] + v[2] * w[2]
     }
 
-    pub fn cross(v: &Vec3, w: &Vec3) -> Vec3 {
-        Vec3::new(
+    pub fn cross(v: &Self, w: &Self) -> Self {
+        Self::new(
             v[1] * w[2] - v[2] * w[1],
             v[2] * w[0] - v[0] * w[2],
             v[0] * w[1] - v[1] * w[0],
         )
     }
 
-    pub fn unit(v: &Vec3) -> Vec3 {
+    pub fn unit(v: &Self) -> Self {
         *v / v.len()
     }
 }
@@ -61,13 +61,13 @@ impl fmt::Display for Vec3 {
 
 impl ops::Index<usize> for Vec3 {
     type Output = f64;
-    fn index<'a>(&'a self, i: usize) -> &'a f64 {
+    fn index(&self, i: usize) -> &f64 {
         &self.e[i]
     }
 }
 
 impl ops::IndexMut<usize> for Vec3 {
-    fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut f64 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
         &mut self.e[i]
     }
 }
@@ -154,7 +154,7 @@ impl ops::Div<Vec3> for Vec3 {
 
 impl ops::DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, f: f64) {
-        *self = *self * (1.0 / f)
+        *self *= 1.0 / f
     }
 }
 

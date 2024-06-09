@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::{Interval, Point3, Ray, Vec3};
 
 pub enum Face {
@@ -13,16 +15,16 @@ pub struct HitRecord {
 }
 
 impl HitRecord {
-    pub fn new(p: Point3, outward_normal: Vec3, t: f64, ray: &Ray) -> HitRecord {
+    pub fn new(p: Point3, outward_normal: Vec3, t: f64, ray: &Ray) -> Self {
         if Vec3::dot(ray.direction(), &outward_normal) < 0.0 {
-            HitRecord {
+            Self {
                 p,
                 normal: outward_normal,
                 t,
                 face: Face::Outside,
             }
         } else {
-            HitRecord {
+            Self {
                 p,
                 normal: -outward_normal,
                 t,
@@ -41,8 +43,8 @@ pub struct HittableList<T: Hittable> {
 }
 
 impl<T: Hittable> HittableList<T> {
-    pub fn new() -> HittableList<T> {
-        HittableList {
+    pub fn new() -> Self {
+        Self {
             objects: Vec::new(),
         }
     }
@@ -56,6 +58,12 @@ impl<T: Hittable> HittableList<T> {
     }
 }
 
+impl<T: Hittable> Default for HittableList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Hittable> Hittable for HittableList<T> {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let (rec, _): (Option<HitRecord>, f64) =
@@ -66,7 +74,7 @@ impl<T: Hittable> Hittable for HittableList<T> {
                         let tmax = rec.t;
                         return (Some(rec), tmax);
                     }
-                    return (rec, tmax);
+                    (rec, tmax)
                 });
         rec
     }
