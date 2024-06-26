@@ -3,8 +3,7 @@ use std::fs::File;
 use std::path::Path;
 use crate::Color;
 
-use netpbmr::ppm;
-use netpbmr::formats::EncodingType;
+use netpbmr::{ppm, EncodingType};
 
 pub fn create_ppm<P>(path: P, data: &[Color], w: u32, h: u32) -> Result<(), Box<dyn Error>>
 where
