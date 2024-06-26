@@ -3,6 +3,7 @@ use raytracer_ow::hittable::HittableList;
 use raytracer_ow::sphere::Sphere;
 use raytracer_ow::Point3;
 use std::error::Error;
+use raytracer_ow::image;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // World
@@ -22,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Save
     let (image_width, image_height) = camera.dim();
-    raytracer_ow::create_ppm("sample.ppm", &data, image_width.0, image_height.0)?;
+    image::create_ppm("sample.ppm", &data, image_width.0, image_height.0)?;
 
     Ok(())
 }
