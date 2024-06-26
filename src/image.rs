@@ -15,7 +15,7 @@ where
 
     let data: Vec<u8> = data.iter().flat_map(|color| color.to_rgb24()).collect();
     
-    encoder.write(EncodingType::Plain, w, h, 256, &data)?;
+    encoder.write(EncodingType::Raw, w, h, 255, &data)?;
 
     Ok(())
 }
