@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Interval {
     pub min: f64,
     pub max: f64,

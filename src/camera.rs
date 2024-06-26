@@ -27,52 +27,15 @@ impl fmt::Display for CameraError {
 
 impl Error for CameraError {}
 
-#[derive(Clone, Copy)]
-pub struct ImageDim(pub u32);
-
-impl ImageDim {
-    pub fn new(val: u32) -> Result<Self, CameraError> {
-        if val > 0 {
-            Ok(Self(val))
-        } else {
-            Err(CameraError::from("image width must be greater than 0"))
-        }
-    }
-}
-
-struct AspectRatio(f64);
-
-impl AspectRatio {
-    pub fn new(val: f64) -> Result<Self, CameraError> {
-        if val > 0.0 {
-            Ok(Self(val))
-        } else {
-            Err(CameraError::from("aspect ratio must be greater than 0"))
-        }
-    }
-}
-
-struct SamplesCount(u32);
-
-impl SamplesCount {
-    pub fn new(val: u32) -> Result<Self, CameraError> {
-        if val > 0 {
-            Ok(Self(val))
-        } else {
-            Err(CameraError::from("aspect ratio must be greater than 0"))
-        }
-    }
-}
-
 pub struct Camera {
-    aspect_ratio: AspectRatio,
-    image_width: ImageDim,
-    image_height: ImageDim,
+    aspect_ratio: f64,
+    image_width: u32,
+    image_height: u32,
     center: Point3,
     pixel00_loc: Point3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
-    samples_per_pixel: SamplesCount,
+    samples_per_pixel: u32,
 }
 
 impl Camera {
@@ -81,18 +44,23 @@ impl Camera {
         image_width: u32,
         samples_per_pixel: u32,
     ) -> Result<Self, CameraError> {
-        let image_width = ImageDim::new(image_width)?;
-        let aspect_ratio = AspectRatio::new(aspect_ratio)?;
-        let samples_per_pixel = SamplesCount::new(samples_per_pixel)?;
+        if aspect_ratio <= 0.0 {
+            return Err(CameraError::from("aspect ratio must be greater than 0"));
+        }
+        if image_width <= 0 {
+            return Err(CameraError::from("image width must be greater than 0"));
+        }
+        if samples_per_pixel <= 0 {
+            return Err(CameraError::from("samples per pixel must be greater than 0"));
+        }
 
         // Image
-        let image_height =
-            ImageDim::new(f64::max(image_width.0 as f64 / aspect_ratio.0, 1.0) as u32)?;
+        let image_height = f64::max(image_width as f64 / aspect_ratio, 1.0) as u32;
 
         // Camera
         let focal_length = 1.0;
         let viewport_height = 2.0;
-        let viewport_width = viewport_height * (image_width.0 as f64 / image_height.0 as f64);
+        let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
         let center = Point3::new(0.0, 0.0, 0.0);
 
         // Horizontal and verical viewport vectors
@@ -100,8 +68,8 @@ impl Camera {
         let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
 
         // Pixel delta vectors
-        let pixel_delta_u = viewport_u / image_width.0 as f64;
-        let pixel_delta_v = viewport_v / image_height.0 as f64;
+        let pixel_delta_u = viewport_u / image_width as f64;
+        let pixel_delta_v = viewport_v / image_height as f64;
 
         // Upper-left pixel
         let viewport_upper_left =
@@ -120,20 +88,20 @@ impl Camera {
         })
     }
 
-    pub fn dim(&self) -> (ImageDim, ImageDim) {
+    pub fn dim(&self) -> (u32, u32) {
         (self.image_width, self.image_height)
     }
 
     pub fn render<T: Hittable>(&self, world: &T) -> Vec<Color> {
         let mut data: Vec<Color> = Vec::new();
-        for row in 0..self.image_height.0 {
-            for col in 0..self.image_width.0 {
+        for row in 0..self.image_height {
+            for col in 0..self.image_width {
                 let mut pixel_color = Color::new_rgb(0.0, 0.0, 0.0);
-                for _ in 0..self.samples_per_pixel.0 {
+                for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(row, col);
                     pixel_color += Camera::ray_color(ray, world);
                 }
-                data.push(pixel_color / self.samples_per_pixel.0 as f64);
+                data.push(pixel_color / self.samples_per_pixel as f64);
             }
         }
         data

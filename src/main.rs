@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Save
     let (image_width, image_height) = camera.dim();
-    image::create_ppm("sample.ppm", &data, image_width.0, image_height.0)?;
+    image::create_ppm("sample.ppm", &data, image_width, image_height)?;
 
     Ok(())
 }

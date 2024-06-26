@@ -2,11 +2,13 @@
 
 use crate::{Interval, Point3, Ray, Vec3};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Face {
     Outside,
     Inside,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,

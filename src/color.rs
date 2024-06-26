@@ -8,7 +8,7 @@ const INTENSITY: Interval = Interval {
     max: 0.999,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 struct Channel(f64);
 
 impl Channel {
@@ -21,7 +21,7 @@ impl Channel {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Color {
     e: [Channel; 4],
 }
