@@ -3,21 +3,18 @@ use std::ops;
 
 use crate::Interval;
 
-const INTENSITY: Interval = Interval {
-    min: 0.0,
-    max: 0.999,
-};
-
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 struct Channel(f64);
 
 impl Channel {
+    const INTENSITY: Interval = Interval::new(0.0, 0.999);
+
     pub fn new(val: f64) -> Self {
         Self(val)
     }
 
     pub fn make_byte(&self) -> u8 {
-        f64::floor(INTENSITY.clamp(self.0) * 255.0) as u8
+        f64::floor(Self::INTENSITY.clamp(self.0) * 255.0) as u8
     }
 }
 
@@ -208,7 +205,7 @@ mod tests {
         assert_eq!(to_p7(d[0]), to_p7(0.4));
         assert_eq!(to_p7(d[1]), to_p7(0.5));
         assert_eq!(to_p7(d[2]), to_p7(0.6));
-        assert_eq!(d.to_rgb24(), [102, 128, 153]);
+        assert_eq!(d.to_rgb24(), [102, 127, 153]);
 
         let u = c + d;
         assert_eq!(to_3p7([u[0], u[1], u[2]]), to_3p7([0.5, 0.7, 0.9]));

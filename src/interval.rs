@@ -1,23 +1,23 @@
-#![allow(dead_code)]
-
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Interval {
-    pub min: f64,
-    pub max: f64,
+    min: f64,
+    max: f64,
 }
 
 impl Interval {
-    const EMPTY: Self = Self {
-        min: f64::INFINITY,
-        max: f64::NEG_INFINITY,
-    };
-    const UNIVERSE: Self = Self {
-        min: f64::NEG_INFINITY,
-        max: f64::INFINITY,
-    };
+    const EMPTY: Self = Self::new(f64::INFINITY, f64::NEG_INFINITY);
+    const UNIVERSE: Self = Self::new(f64::NEG_INFINITY, f64::INFINITY);
 
-    pub fn new(min: f64, max: f64) -> Self {
-        Interval { min, max }
+    pub const fn new(min: f64, max: f64) -> Self {
+        Self { min, max }
+    }
+
+    pub fn min(&self) -> f64 {
+        self.min
+    }
+
+    pub fn max(&self) -> f64 {
+        self.max
     }
 
     pub fn contains(&self, x: f64) -> bool {
@@ -26,6 +26,14 @@ impl Interval {
 
     pub fn surrounds(&self, x: f64) -> bool {
         self.min < x && x < self.max
+    }
+
+    pub fn surrounds_or_min(&self, x: f64) -> bool {
+        self.min <= x && x < self.max
+    }
+
+    pub fn surrounds_or_max(&self, x: f64) -> bool {
+        self.min < x && x <= self.max
     }
 
     pub fn clamp(&self, x: f64) -> f64 {
@@ -58,6 +66,18 @@ mod tests {
         assert!(!int.surrounds(5.0));
         assert!(!int.surrounds(-2.1));
         assert!(!int.surrounds(5.1));
+
+        assert!(int.surrounds_or_min(0.0));
+        assert!(int.surrounds_or_min(-2.0));
+        assert!(!int.surrounds_or_min(5.0));
+        assert!(!int.surrounds_or_min(-2.1));
+        assert!(!int.surrounds_or_min(5.1));
+
+        assert!(int.surrounds_or_max(0.0));
+        assert!(!int.surrounds_or_max(-2.0));
+        assert!(int.surrounds_or_max(5.0));
+        assert!(!int.surrounds_or_max(-2.1));
+        assert!(!int.surrounds_or_max(5.1));
 
         assert_eq!(int.clamp(3.0), 3.0);
         assert_eq!(int.clamp(-2.1), -2.0);

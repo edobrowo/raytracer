@@ -1,7 +1,7 @@
+use crate::Color;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
-use crate::Color;
 
 use netpbmr::{ppm, EncodingType};
 
@@ -13,7 +13,7 @@ where
     let mut encoder = ppm::Encoder::new(file);
 
     let data: Vec<u8> = data.iter().flat_map(|color| color.to_rgb24()).collect();
-    
+
     encoder.write(EncodingType::Raw, w, h, 255, &data)?;
 
     Ok(())

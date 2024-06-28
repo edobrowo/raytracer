@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::{Interval, Point3, Ray, Vec3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -71,8 +69,8 @@ impl<T: Hittable> Hittable for HittableList<T> {
         let (rec, _): (Option<HitRecord>, f64) =
             self.objects
                 .iter()
-                .fold((None, ray_t.max), |(rec, tmax), object| {
-                    if let Some(rec) = object.hit(ray, Interval::new(ray_t.min, tmax)) {
+                .fold((None, ray_t.max()), |(rec, tmax), object| {
+                    if let Some(rec) = object.hit(ray, Interval::new(ray_t.min(), tmax)) {
                         let tmax = rec.t;
                         return (Some(rec), tmax);
                     }

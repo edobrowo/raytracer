@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use rand::{self, Rng};
 use std::error::Error;
 use std::fmt;
@@ -47,11 +45,13 @@ impl Camera {
         if aspect_ratio <= 0.0 {
             return Err(CameraError::from("aspect ratio must be greater than 0"));
         }
-        if image_width <= 0 {
+        if image_width == 0 {
             return Err(CameraError::from("image width must be greater than 0"));
         }
-        if samples_per_pixel <= 0 {
-            return Err(CameraError::from("samples per pixel must be greater than 0"));
+        if samples_per_pixel == 0 {
+            return Err(CameraError::from(
+                "samples per pixel must be greater than 0",
+            ));
         }
 
         // Image
