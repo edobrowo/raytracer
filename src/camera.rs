@@ -1,29 +1,5 @@
+use crate::{hittable::Hittable, vec3, Color, Error, Interval, Point3, Ray, Vec3};
 use rand::{self, Rng};
-use std::error::Error;
-use std::fmt;
-
-use crate::{hittable::Hittable, vec3, Color, Interval, Point3, Ray, Vec3};
-
-#[derive(Debug, Clone)]
-pub struct CameraError {
-    message: String,
-}
-
-impl CameraError {
-    pub fn from(message: &str) -> Self {
-        Self {
-            message: message.to_string(),
-        }
-    }
-}
-
-impl fmt::Display for CameraError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PPM error: {}", self.message)
-    }
-}
-
-impl Error for CameraError {}
 
 pub struct Camera {
     aspect_ratio: f64,
@@ -37,21 +13,21 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(
-        aspect_ratio: f64,
-        image_width: u32,
-        samples_per_pixel: u32,
-    ) -> Result<Self, CameraError> {
+    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) -> Result<Self, Error> {
         if aspect_ratio <= 0.0 {
-            return Err(CameraError::from("aspect ratio must be greater than 0"));
+            return Err(Error::new_camera(&format!(
+                "aspect ratio must be greater than 0 (given {aspect_ratio})"
+            )));
         }
         if image_width == 0 {
-            return Err(CameraError::from("image width must be greater than 0"));
+            return Err(Error::new_camera(&format!(
+                "image width must be greater than 0 (given {image_width})"
+            )));
         }
         if samples_per_pixel == 0 {
-            return Err(CameraError::from(
-                "samples per pixel must be greater than 0",
-            ));
+            return Err(Error::new_camera(&format!(
+                "samples per pixel must be greater than 0 (given {samples_per_pixel})"
+            )));
         }
 
         // Image
