@@ -5,15 +5,13 @@ use std::ops;
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Vec3 {
     e: [f64; 3],
-    len: f64,
 }
 
 pub type Point3 = Vec3;
 
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
-        let len = f64::sqrt(x * x + y * y + z * z);
-        Self { e: [x, y, z], len }
+        Self { e: [x, y, z] }
     }
 
     pub fn x(&self) -> f64 {
@@ -28,12 +26,12 @@ impl Vec3 {
         self[2]
     }
 
-    pub fn len(&self) -> f64 {
-        self.len
+    pub fn len_sqr(&self) -> f64 {
+        self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
     }
 
-    pub fn len_sqr(&self) -> f64 {
-        self.len * self.len
+    pub fn len(&self) -> f64 {
+        f64::sqrt(self.len_sqr())
     }
 
     pub fn dot(v: &Self, w: &Self) -> f64 {

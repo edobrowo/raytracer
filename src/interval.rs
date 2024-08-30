@@ -5,7 +5,10 @@ pub struct Interval {
 }
 
 impl Interval {
+    #[allow(unused)]
     const EMPTY: Self = Self::new(f64::INFINITY, f64::NEG_INFINITY);
+
+    #[allow(unused)]
     const UNIVERSE: Self = Self::new(f64::NEG_INFINITY, f64::INFINITY);
 
     pub const fn new(min: f64, max: f64) -> Self {
