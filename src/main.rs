@@ -15,11 +15,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Camera
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
-    let samples_per_pixel = 10;
+    let samples_per_pixel = 1;
     let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel)?;
 
     // Render
+    use std::time::Instant;
+    let now = Instant::now();
+
     let data = camera.render(&world);
+
+    let elapsed = now.elapsed();
+    println!("Rendering: {:.2?}", elapsed);
 
     // Save
     let (image_width, image_height) = camera.dim();

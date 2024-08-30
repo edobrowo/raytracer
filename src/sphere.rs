@@ -14,8 +14,8 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        // Compute discriminant to determine number of intersections
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
+        // Use discriminant to determine number of intersections
         let oc = *ray.origin() - self.center;
         let a = ray.direction().len_sqr();
         let half_b = Vec3::dot(&oc, ray.direction());
@@ -28,7 +28,7 @@ impl Hittable for Sphere {
 
         let sqrtd = f64::sqrt(discriminant);
 
-        // Take the first root where there's a hit
+        // Take the first root where there is a hit
         let mut root = (-half_b - sqrtd) / a;
         if !ray_t.surrounds(root) {
             root = (-half_b + sqrtd) / a;

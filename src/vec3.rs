@@ -35,14 +35,14 @@ impl Vec3 {
     }
 
     pub fn dot(v: &Self, w: &Self) -> f64 {
-        v[0] * w[0] + v[1] * w[1] + v[2] * w[2]
+        v.x() * w.x() + v.y() * w.y() + v.z() * w.z()
     }
 
     pub fn cross(v: &Self, w: &Self) -> Self {
         Self::new(
-            v[1] * w[2] - v[2] * w[1],
-            v[2] * w[0] - v[0] * w[2],
-            v[0] * w[1] - v[1] * w[0],
+            v.y() * w.z() - v.z() * w.y(),
+            v.z() * w.x() - v.x() * w.z(),
+            v.x() * w.y() - v.y() * w.x(),
         )
     }
 
@@ -53,7 +53,7 @@ impl Vec3 {
 
 impl fmt::Display for Vec3 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "[{}, {}, {}]", self[0], self[1], self[2])
+        write!(fmt, "({}, {}, {})", self[0], self[1], self[2])
     }
 }
 
@@ -162,37 +162,39 @@ impl ops::DivAssign<Vec3> for Vec3 {
     }
 }
 
-pub fn random() -> Vec3 {
-    Vec3::new(
-        rand::thread_rng().gen::<f64>(),
-        rand::thread_rng().gen::<f64>(),
-        rand::thread_rng().gen::<f64>(),
-    )
-}
+impl Vec3 {
+    fn random() -> Self {
+        Self::new(
+            rand::thread_rng().gen::<f64>(),
+            rand::thread_rng().gen::<f64>(),
+            rand::thread_rng().gen::<f64>(),
+        )
+    }
 
-pub fn random_in_range(min: f64, max: f64) -> Vec3 {
-    Vec3::new(min, min, min) + (max - min) * random()
-}
+    fn random_in_range(min: f64, max: f64) -> Self {
+        Self::new(min, min, min) + (max - min) * Self::random()
+    }
 
-pub fn random_in_unit_sphere() -> Vec3 {
-    loop {
-        let p = random_in_range(-1.0, 1.0);
-        if p.len_sqr() < 1.0 {
-            return p;
+    fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random_in_range(-1.0, 1.0);
+            if p.len_sqr() < 1.0 {
+                return p;
+            }
         }
     }
-}
 
-pub fn random_unit() -> Vec3 {
-    Vec3::unit(&random_in_unit_sphere())
-}
+    fn random_unit() -> Self {
+        Self::unit(&Self::random_in_unit_sphere())
+    }
 
-pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
-    let u = random_unit();
-    if Vec3::dot(&u, normal) > 0.0 {
-        u
-    } else {
-        -u
+    pub fn random_on_hemisphere(normal: &Self) -> Self {
+        let u = Self::random_unit();
+        if Self::dot(&u, normal) > 0.0 {
+            u
+        } else {
+            -u
+        }
     }
 }
 
@@ -200,12 +202,12 @@ pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
 mod tests {
     use super::Vec3;
 
-    fn to_p7(f: f64) -> u64 {
+    fn f64_to_fixed(f: f64) -> u64 {
         f64::round(f * 1000000.0) as u64
     }
 
-    fn to_3p7(c: [f64; 3]) -> [u64; 3] {
-        [to_p7(c[0]), to_p7(c[1]), to_p7(c[2])]
+    fn vec3_to_fixed(c: [f64; 3]) -> [u64; 3] {
+        [f64_to_fixed(c[0]), f64_to_fixed(c[1]), f64_to_fixed(c[2])]
     }
 
     #[test]
@@ -216,12 +218,12 @@ mod tests {
         assert_eq!(v[0], 1.0);
         assert_eq!(v[1], 2.0);
         assert_eq!(v[2], 3.0);
-        assert_eq!(to_p7(v.len()), 3741657);
+        assert_eq!(f64_to_fixed(v.len()), 3741657);
 
         assert_eq!(w[0], 4.0);
         assert_eq!(w[1], 5.0);
         assert_eq!(w[2], 6.0);
-        assert_eq!(to_p7(w.len()), 8774964);
+        assert_eq!(f64_to_fixed(w.len()), 8774964);
 
         let u = v + w;
         assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
@@ -255,13 +257,13 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
         let u = v / w;
         assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
+            vec3_to_fixed([u[0], u[1], u[2]]),
+            vec3_to_fixed([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
         );
         let u = w / v;
         assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([4.0 / 1.0, 5.0 / 2.0, 6.0 / 3.0])
+            vec3_to_fixed([u[0], u[1], u[2]]),
+            vec3_to_fixed([4.0 / 1.0, 5.0 / 2.0, 6.0 / 3.0])
         );
         let mut u = v;
         u *= w;
@@ -270,8 +272,8 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [1.0, 2.0, 3.0]);
         u /= w;
         assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
+            vec3_to_fixed([u[0], u[1], u[2]]),
+            vec3_to_fixed([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
         );
 
         let u = 5.0 * v;
@@ -286,12 +288,12 @@ mod tests {
         assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
         u /= 3.0;
         assert_eq!(
-            to_3p7([u[0], u[1], u[2]]),
-            to_3p7([5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0])
+            vec3_to_fixed([u[0], u[1], u[2]]),
+            vec3_to_fixed([5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0])
         );
 
         let u = Vec3::unit(&u);
-        assert_eq!(to_3p7([u[0], u[1], u[2]]), [267261, 534522, 801784]);
+        assert_eq!(vec3_to_fixed([u[0], u[1], u[2]]), [267261, 534522, 801784]);
 
         let u = Vec3::dot(&v, &w);
         assert_eq!(u, 32.0);

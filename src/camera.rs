@@ -1,4 +1,4 @@
-use crate::{hittable::Hittable, vec3, Color, Error, Interval, Point3, Ray, Vec3};
+use crate::{hittable::Hittable, Color, Error, Interval, Point3, Ray, Vec3};
 use rand::{self, Rng};
 
 pub struct Camera {
@@ -77,7 +77,7 @@ impl Camera {
                     let ray = self.get_ray(row, col);
                     pixel_color += Camera::ray_color(ray, world);
                 }
-                data.push(pixel_color / self.samples_per_pixel as f64);
+                data.push(pixel_color / self.samples_per_pixel as f32);
             }
         }
         data
@@ -102,14 +102,14 @@ impl Camera {
     }
 
     fn ray_color<T: Hittable>(ray: Ray, world: &T) -> Color {
-        if let Some(rec) = world.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
+        if let Some(rec) = world.hit(&ray, &Interval::NONNEGATIVE) {
             let n = rec.normal;
-            let direction = vec3::random_on_hemisphere(&n);
+            let direction = Vec3::random_on_hemisphere(&n);
             return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), world);
         }
 
         let unit_dir = Vec3::unit(ray.direction());
-        let a = 0.5 * (unit_dir.y() + 1.0);
+        let a = (0.5 * (unit_dir.y() + 1.0)) as f32;
         (1.0 - a) * Color::new_rgb(1.0, 1.0, 1.0) + a * Color::new_rgb(0.5, 0.7, 1.0)
     }
 }

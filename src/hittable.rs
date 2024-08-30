@@ -1,9 +1,9 @@
 use crate::{Interval, Point3, Ray, Vec3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Face {
-    Outside,
-    Inside,
+pub enum Orientation {
+    Interior,
+    Exterior,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -11,7 +11,7 @@ pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
     t: f64,
-    face: Face,
+    o: Orientation,
 }
 
 impl HitRecord {
@@ -21,21 +21,21 @@ impl HitRecord {
                 p,
                 normal: outward_normal,
                 t,
-                face: Face::Outside,
+                o: Orientation::Exterior,
             }
         } else {
             Self {
                 p,
                 normal: -outward_normal,
                 t,
-                face: Face::Inside,
+                o: Orientation::Interior,
             }
         }
     }
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord>;
 }
 
 pub struct HittableList<T: Hittable> {
@@ -65,17 +65,16 @@ impl<T: Hittable> Default for HittableList<T> {
 }
 
 impl<T: Hittable> Hittable for HittableList<T> {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        let (rec, _): (Option<HitRecord>, f64) =
-            self.objects
-                .iter()
-                .fold((None, ray_t.max()), |(rec, tmax), object| {
-                    if let Some(rec) = object.hit(ray, Interval::new(ray_t.min(), tmax)) {
-                        let tmax = rec.t;
-                        return (Some(rec), tmax);
-                    }
-                    (rec, tmax)
-                });
-        rec
+    fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
+        self.objects
+            .iter()
+            .fold((None, ray_t.max()), |(rec, t_max), object| {
+                if let Some(rec) = object.hit(ray, &Interval::new(ray_t.min(), t_max)) {
+                    (Some(rec), rec.t)
+                } else {
+                    (rec, t_max)
+                }
+            })
+            .0
     }
 }
