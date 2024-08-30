@@ -122,8 +122,7 @@ impl Camera {
         }
 
         if let Some(rec) = world.hit(&ray, &Self::INITIAL_T_BOUND) {
-            let n = rec.normal;
-            let direction = Vec3::random_on_hemisphere(&n);
+            let direction = rec.normal + Vec3::random_unit();
             return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), depth - 1, world);
         }
 
