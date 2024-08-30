@@ -10,9 +10,6 @@ impl Interval {
     pub const EMPTY: Self = Self::new(f64::INFINITY, f64::NEG_INFINITY);
     pub const UNIVERSE: Self = Self::new(f64::NEG_INFINITY, f64::INFINITY);
 
-    pub const NONNEGATIVE: Self = Self::new(0.0, f64::INFINITY);
-    pub const NONPOSITIVE: Self = Self::new(f64::NEG_INFINITY, 0.0);
-
     pub const fn new(min: f64, max: f64) -> Self {
         Self { min, max }
     }

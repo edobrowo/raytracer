@@ -16,7 +16,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let samples_per_pixel = 10;
-    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel)?;
+    let max_depth = 10;
+
+    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth)?;
 
     // Render
     use std::time::Instant;

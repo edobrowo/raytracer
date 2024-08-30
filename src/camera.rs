@@ -9,24 +9,38 @@ pub struct Camera {
     pixel00_loc: Point3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    max_depth: u32,
     samples_per_pixel: u32,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) -> Result<Self, Error> {
+    // Use a non-zero lower bound to prevent shadow acne.
+    const INITIAL_T_BOUND: Interval = Interval::new(0.001, f64::INFINITY);
+
+    pub fn new(
+        aspect_ratio: f64,
+        image_width: u32,
+        samples_per_pixel: u32,
+        max_depth: u32,
+    ) -> Result<Self, Error> {
         if aspect_ratio <= 0.0 {
             return Err(Error::new_camera(&format!(
-                "aspect ratio must be greater than 0 (given {aspect_ratio})"
+                "aspect_ratio must be greater than 0 (given {aspect_ratio})"
             )));
         }
         if image_width == 0 {
             return Err(Error::new_camera(&format!(
-                "image width must be greater than 0 (given {image_width})"
+                "image_width must be greater than 0 (given {image_width})"
             )));
         }
         if samples_per_pixel == 0 {
             return Err(Error::new_camera(&format!(
-                "samples per pixel must be greater than 0 (given {samples_per_pixel})"
+                "samples_per_pixel must be greater than 0 (given {samples_per_pixel})"
+            )));
+        }
+        if max_depth == 0 {
+            return Err(Error::new_camera(&format!(
+                "max_depth must be greater than 0 (given {samples_per_pixel})"
             )));
         }
 
@@ -60,6 +74,7 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
+            max_depth,
             samples_per_pixel,
         })
     }
@@ -75,7 +90,7 @@ impl Camera {
                 let mut pixel_color = Color::new_rgb(0.0, 0.0, 0.0);
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(row, col);
-                    pixel_color += Camera::ray_color(ray, world);
+                    pixel_color += Camera::ray_color(ray, self.max_depth, world);
                 }
                 data.push(pixel_color / self.samples_per_pixel as f32);
             }
@@ -101,11 +116,15 @@ impl Camera {
         px * self.pixel_delta_u + py * self.pixel_delta_v
     }
 
-    fn ray_color<T: Hittable>(ray: Ray, world: &T) -> Color {
-        if let Some(rec) = world.hit(&ray, &Interval::NONNEGATIVE) {
+    fn ray_color<T: Hittable>(ray: Ray, depth: u32, world: &T) -> Color {
+        if depth == 0 {
+            return Color::new_rgb(0.0, 0.0, 0.0);
+        }
+
+        if let Some(rec) = world.hit(&ray, &Self::INITIAL_T_BOUND) {
             let n = rec.normal;
             let direction = Vec3::random_on_hemisphere(&n);
-            return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), world);
+            return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), depth - 1, world);
         }
 
         let unit_dir = Vec3::unit(ray.direction());
