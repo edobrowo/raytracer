@@ -26,7 +26,7 @@ impl Sphere {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         // Use discriminant to determine number of intersections
-        let oc = ray.origin() - &self.center;
+        let oc = ray.origin() - self.center;
         let a = ray.direction().len_sqr();
         let half_b = Vec3::dot(&oc, ray.direction());
         let c = oc.len_sqr() - self.radius * self.radius;
@@ -50,7 +50,7 @@ impl Hittable for Sphere {
         // Compute the normal, i.e. the reflected ray
         let t = root;
         let p = ray.at(root);
-        let outward_normal = (&p - &self.center) / self.radius;
+        let outward_normal = (p - self.center) / self.radius;
 
         Some(HitRecord::new(&p, &outward_normal, t, ray, &*self.material))
     }

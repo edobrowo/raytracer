@@ -23,9 +23,7 @@ pub struct Lambertian {
 impl Lambertian {
     /// Create a Lambertian material. Rays will always scatter.
     pub fn new(albedo: &Color) -> Self {
-        Self {
-            albedo: albedo.clone(),
-        }
+        Self { albedo: *albedo }
     }
 }
 
@@ -57,19 +55,16 @@ pub struct LambertianRandom {
 impl LambertianRandom {
     /// Create a Lambertian material. Rays will scatter with probability `p`.
     pub fn new(albedo: &Color, p: f32, is_attenuated: bool) -> Self {
-        assert!(0.0 <= p && p <= 1.0);
+        assert!((0.0..=1.0).contains(&p));
 
         let albedo = if is_attenuated {
             // When attenuated, scale the albedo by `p`.
             albedo / p
         } else {
-            albedo.clone()
+            *albedo
         };
 
-        Self {
-            albedo: albedo.clone(),
-            p,
-        }
+        Self { albedo, p }
     }
 }
 
@@ -120,7 +115,7 @@ impl Material for Metallic {
         let reflected = Vec3::reflect(ray.direction(), &rec.normal);
 
         // Fuzz the reflected ray within a fuzz sphere.
-        let reflected = reflected.unit() + (self.fuzz * &Vec3::random_unit());
+        let reflected = reflected.unit() + (self.fuzz * Vec3::random_unit());
 
         let scattered = Ray::new(rec.p, reflected);
 

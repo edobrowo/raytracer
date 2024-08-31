@@ -33,14 +33,14 @@ impl<'a> HitRecord<'a> {
     /// Creates a new hit record.
     pub fn new(p: &Point3, normal: &Vec3, t: f64, ray: &Ray, material: &'a dyn Material) -> Self {
         // Enforce the normal and ray to be in the same hemisphere.
-        let (normal, orientation) = if Vec3::dot(ray.direction(), &normal) < 0.0 {
-            (normal.clone(), Orientation::Exterior)
+        let (normal, orientation) = if Vec3::dot(ray.direction(), normal) < 0.0 {
+            (*normal, Orientation::Exterior)
         } else {
-            (-normal.clone(), Orientation::Interior)
+            (-normal, Orientation::Interior)
         };
 
         Self {
-            p: p.clone(),
+            p: *p,
             normal,
             material,
             t,

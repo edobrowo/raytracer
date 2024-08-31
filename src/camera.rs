@@ -154,8 +154,8 @@ impl Camera {
             return Color::new(0.0, 0.0, 0.0);
         }
 
-        if let Some(rec) = world.hit(&ray, &Self::INITIAL_T_BOUND) {
-            return if let Some((scattered, attenuation)) = rec.material.scatter(&ray, &rec) {
+        if let Some(rec) = world.hit(ray, &Self::INITIAL_T_BOUND) {
+            return if let Some((scattered, attenuation)) = rec.material.scatter(ray, &rec) {
                 attenuation * Camera::ray_color(&scattered, depth - 1, world)
             } else {
                 Color::new(0.0, 0.0, 0.0)
