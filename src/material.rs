@@ -1,4 +1,5 @@
 use crate::{hittable::HitRecord, Color, Ray, Vec3};
+use rand::{self, Rng};
 
 /// Specifies how rays scatter off of geometry.
 pub trait Material {
@@ -28,6 +29,56 @@ impl Lambertian {
 impl Material for Lambertian {
     #[allow(unused)]
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        // Generate the reflected ray in the unit circle from the surface normal.
+        let scatter_direction = rec.normal + Vec3::random_unit();
+
+        // Use the surface normal if the generated ray is degenerate.
+        if !scatter_direction.is_almost_zero() {
+            Some((Ray::new(rec.p, scatter_direction), self.albedo))
+        } else {
+            Some((Ray::new(rec.p, rec.normal), self.albedo))
+        }
+    }
+}
+
+/// Lambertian probabilistic diffuse material.
+#[derive(Debug, Clone)]
+pub struct LambertianRandom {
+    /// Fractional reflectance color.
+    albedo: Color,
+
+    /// Probability of scattering.
+    p: f32,
+}
+
+impl LambertianRandom {
+    /// Create a Lambertian material. Rays will scatter with probability `p`.
+    pub fn new(albedo: &Color, p: f32, is_attenuated: bool) -> Self {
+        assert!(0.0 <= p && p <= 1.0);
+
+        let albedo = if is_attenuated {
+            // When attenuated, scale the albedo by `p`.
+            albedo / p
+        } else {
+            albedo.clone()
+        };
+
+        Self {
+            albedo: albedo.clone(),
+            p,
+        }
+    }
+}
+
+impl Material for LambertianRandom {
+    #[allow(unused)]
+    fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        // Random test on whether to scatter
+        let r = rand::thread_rng().gen::<f32>();
+        if r <= self.p {
+            return None;
+        }
+
         // Generate the reflected ray in the unit circle from the surface normal.
         let scatter_direction = rec.normal + Vec3::random_unit();
 
