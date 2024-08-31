@@ -11,7 +11,7 @@ pub struct Color {
 impl Color {
     const INTENSITY: Interval = Interval::new(0.0, 0.999);
 
-    pub fn new_rgb(r: f32, g: f32, b: f32) -> Self {
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
         Self { e: [r, g, b] }
     }
 
@@ -48,7 +48,7 @@ impl Color {
     }
 
     pub fn gamma_correct(&self) -> Self {
-        Self::new_rgb(
+        Self::new(
             Self::linear_to_gamma(self.r()),
             Self::linear_to_gamma(self.g()),
             Self::linear_to_gamma(self.b()),
@@ -78,14 +78,14 @@ impl ops::IndexMut<usize> for Color {
 impl ops::Add for Color {
     type Output = Color;
     fn add(self, other: Color) -> Color {
-        Color::new_rgb(self[0] + other[0], self[1] + other[1], self[2] + other[2])
+        Color::new(self[0] + other[0], self[1] + other[1], self[2] + other[2])
     }
 }
 
 impl ops::Sub for Color {
     type Output = Color;
     fn sub(self, other: Color) -> Color {
-        Color::new_rgb(self[0] - other[0], self[1] - other[1], self[2] - other[2])
+        Color::new(self[0] - other[0], self[1] - other[1], self[2] - other[2])
     }
 }
 
@@ -104,21 +104,21 @@ impl ops::SubAssign for Color {
 impl ops::Mul<f32> for Color {
     type Output = Color;
     fn mul(self, f: f32) -> Color {
-        Color::new_rgb(self[0] * f, self[1] * f, self[2] * f)
+        Color::new(self[0] * f, self[1] * f, self[2] * f)
     }
 }
 
 impl ops::Mul<Color> for f32 {
     type Output = Color;
     fn mul(self, c: Color) -> Color {
-        Color::new_rgb(self * c[0], self * c[1], self * c[2])
+        Color::new(self * c[0], self * c[1], self * c[2])
     }
 }
 
 impl ops::Mul<Color> for Color {
     type Output = Color;
     fn mul(self, other: Color) -> Color {
-        Color::new_rgb(self[0] * other[0], self[1] * other[1], self[2] * other[2])
+        Color::new(self[0] * other[0], self[1] * other[1], self[2] * other[2])
     }
 }
 
@@ -144,7 +144,7 @@ impl ops::Div<f32> for Color {
 impl ops::Div<Color> for Color {
     type Output = Color;
     fn div(self, other: Color) -> Color {
-        Color::new_rgb(self[0] / other[0], self[1] / other[1], self[2] / other[2])
+        Color::new(self[0] / other[0], self[1] / other[1], self[2] / other[2])
     }
 }
 
@@ -174,8 +174,8 @@ mod tests {
 
     #[test]
     fn color_general() {
-        let c = Color::new_rgb(0.1, 0.2, 0.3);
-        let d = Color::new_rgb(0.4, 0.5, 0.6);
+        let c = Color::new(0.1, 0.2, 0.3);
+        let d = Color::new(0.4, 0.5, 0.6);
 
         assert_eq!(f32_to_fixed(c[0]), f32_to_fixed(0.1));
         assert_eq!(f32_to_fixed(c[1]), f32_to_fixed(0.2));
@@ -223,7 +223,7 @@ mod tests {
             color_to_fixed([u[0], u[1], u[2]]),
             color_to_fixed([0.3, 0.3, 0.3])
         );
-        let mut u = Color::new_rgb(0.0, 0.0, 0.0);
+        let mut u = Color::new(0.0, 0.0, 0.0);
         u += c + d;
         assert_eq!(
             color_to_fixed([u[0], u[1], u[2]]),

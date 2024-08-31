@@ -1,4 +1,4 @@
-use crate::{Interval, Point3, Ray, Vec3};
+use crate::{material::Material, Interval, Point3, Ray, Vec3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Orientation {
@@ -6,30 +6,29 @@ pub enum Orientation {
     Exterior,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct HitRecord {
+#[derive(Clone, Copy)]
+pub struct HitRecord<'a> {
     pub p: Point3,
     pub normal: Vec3,
+    pub material: &'a dyn Material,
     t: f64,
-    o: Orientation,
+    orientation: Orientation,
 }
 
-impl HitRecord {
-    pub fn new(p: Point3, outward_normal: Vec3, t: f64, ray: &Ray) -> Self {
-        if Vec3::dot(ray.direction(), &outward_normal) < 0.0 {
-            Self {
-                p,
-                normal: outward_normal,
-                t,
-                o: Orientation::Exterior,
-            }
+impl<'a> HitRecord<'a> {
+    pub fn new(p: Point3, normal: Vec3, t: f64, ray: &Ray, material: &'a dyn Material) -> Self {
+        let (normal, orientation) = if Vec3::dot(ray.direction(), &normal) < 0.0 {
+            (normal, Orientation::Exterior)
         } else {
-            Self {
-                p,
-                normal: -outward_normal,
-                t,
-                o: Orientation::Interior,
-            }
+            (-normal, Orientation::Interior)
+        };
+
+        Self {
+            p,
+            normal,
+            material,
+            t,
+            orientation,
         }
     }
 }
@@ -70,7 +69,8 @@ impl<T: Hittable> Hittable for HittableList<T> {
             .iter()
             .fold((None, ray_t.max()), |(rec, t_max), object| {
                 if let Some(rec) = object.hit(ray, &Interval::new(ray_t.min(), t_max)) {
-                    (Some(rec), rec.t)
+                    let t = rec.t;
+                    (Some(rec), t)
                 } else {
                     (rec, t_max)
                 }

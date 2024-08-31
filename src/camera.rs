@@ -87,7 +87,7 @@ impl Camera {
         let mut data: Vec<Color> = Vec::new();
         for row in 0..self.image_height {
             for col in 0..self.image_width {
-                let mut pixel_color = Color::new_rgb(0.0, 0.0, 0.0);
+                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(row, col);
                     pixel_color += Camera::ray_color(ray, self.max_depth, world);
@@ -118,16 +118,19 @@ impl Camera {
 
     fn ray_color<T: Hittable>(ray: Ray, depth: u32, world: &T) -> Color {
         if depth == 0 {
-            return Color::new_rgb(0.0, 0.0, 0.0);
+            return Color::new(0.0, 0.0, 0.0);
         }
 
         if let Some(rec) = world.hit(&ray, &Self::INITIAL_T_BOUND) {
-            let direction = rec.normal + Vec3::random_unit();
-            return 0.5 * Camera::ray_color(Ray::new(rec.p, direction), depth - 1, world);
+            return if let Some((scattered, attenuation)) = rec.material.scatter(&ray, &rec) {
+                attenuation * Camera::ray_color(scattered, depth - 1, world)
+            } else {
+                Color::new(0.0, 0.0, 0.0)
+            };
         }
 
         let unit_dir = Vec3::unit(ray.direction());
         let a = (0.5 * (unit_dir.y() + 1.0)) as f32;
-        (1.0 - a) * Color::new_rgb(1.0, 1.0, 1.0) + a * Color::new_rgb(0.5, 0.7, 1.0)
+        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
     }
 }

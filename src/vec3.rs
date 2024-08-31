@@ -4,14 +4,18 @@ use std::ops;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Vec3 {
-    e: [f64; 3],
+    components: [f64; 3],
 }
 
 pub type Point3 = Vec3;
 
 impl Vec3 {
+    const ERROR: f64 = 1e-8;
+
     pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Self { e: [x, y, z] }
+        Self {
+            components: [x, y, z],
+        }
     }
 
     pub fn x(&self) -> f64 {
@@ -60,13 +64,13 @@ impl fmt::Display for Vec3 {
 impl ops::Index<usize> for Vec3 {
     type Output = f64;
     fn index(&self, i: usize) -> &f64 {
-        &self.e[i]
+        &self.components[i]
     }
 }
 
 impl ops::IndexMut<usize> for Vec3 {
     fn index_mut(&mut self, i: usize) -> &mut f64 {
-        &mut self.e[i]
+        &mut self.components[i]
     }
 }
 
@@ -195,6 +199,14 @@ impl Vec3 {
         } else {
             -u
         }
+    }
+
+    pub fn is_almost_zero(&self) -> bool {
+        self.components.iter().all(|&v| f64::abs(v) < Self::ERROR)
+    }
+
+    pub fn reflect(v: &Self, normal: &Self) -> Self {
+        *v - 2.0 * Self::dot(v, normal) * *normal
     }
 }
 
