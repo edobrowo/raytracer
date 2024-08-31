@@ -38,6 +38,22 @@ impl Color {
     fn make_byte(channel: f32) -> u8 {
         f64::floor(Self::INTENSITY.clamp(channel as f64) * 255.0) as u8
     }
+
+    fn linear_to_gamma(channel: f32) -> f32 {
+        if channel > 0.0 {
+            f32::sqrt(channel)
+        } else {
+            0.0
+        }
+    }
+
+    pub fn gamma_correct(&self) -> Self {
+        Self::new_rgb(
+            Self::linear_to_gamma(self.r()),
+            Self::linear_to_gamma(self.g()),
+            Self::linear_to_gamma(self.b()),
+        )
+    }
 }
 
 impl fmt::Display for Color {

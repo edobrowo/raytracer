@@ -12,7 +12,10 @@ where
     let file = File::create(path)?;
     let mut encoder = ppm::Encoder::new(file);
 
-    let data: Vec<u8> = data.iter().flat_map(|color| color.to_rgb24()).collect();
+    let data: Vec<u8> = data
+        .iter()
+        .flat_map(|color| color.gamma_correct().to_rgb24())
+        .collect();
 
     encoder.write(EncodingType::Raw, w, h, 255, &data)?;
 
