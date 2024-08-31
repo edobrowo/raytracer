@@ -5,14 +5,16 @@ use crate::Interval;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Color {
-    e: [f32; 3],
+    channels: [f32; 3],
 }
 
 impl Color {
     const INTENSITY: Interval = Interval::new(0.0, 0.999);
 
     pub fn new(r: f32, g: f32, b: f32) -> Self {
-        Self { e: [r, g, b] }
+        Self {
+            channels: [r, g, b],
+        }
     }
 
     pub fn r(&self) -> f32 {
@@ -58,107 +60,220 @@ impl Color {
 
 impl fmt::Display for Color {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "[{}, {}, {}]", self[0], self[1], self[2])
+        write!(fmt, "[{}, {}, {}]", self.r(), self.g(), self.b())
     }
 }
 
 impl ops::Index<usize> for Color {
     type Output = f32;
     fn index(&self, i: usize) -> &f32 {
-        &self.e[i]
+        &self.channels[i]
     }
 }
 
 impl ops::IndexMut<usize> for Color {
     fn index_mut(&mut self, i: usize) -> &mut f32 {
-        &mut self.e[i]
+        &mut self.channels[i]
     }
 }
 
-impl ops::Add for Color {
-    type Output = Color;
-    fn add(self, other: Color) -> Color {
-        Color::new(self[0] + other[0], self[1] + other[1], self[2] + other[2])
-    }
+macro_rules! add {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Add<$rhs> for $lhs {
+            type Output = Color;
+            fn add(self, rhs: $rhs) -> Color {
+                Color::new(self.r() + rhs.r(), self.g() + rhs.g(), self.b() + rhs.b())
+            }
+        }
+    };
 }
 
-impl ops::Sub for Color {
-    type Output = Color;
-    fn sub(self, other: Color) -> Color {
-        Color::new(self[0] - other[0], self[1] - other[1], self[2] - other[2])
-    }
+add!(Color, Color);
+add!(Color, &Color);
+add!(&Color, Color);
+add!(&Color, &Color);
+
+macro_rules! subtract {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Sub<$rhs> for $lhs {
+            type Output = Color;
+            fn sub(self, rhs: $rhs) -> Color {
+                Color::new(self.r() - rhs.r(), self.g() - rhs.g(), self.b() - rhs.b())
+            }
+        }
+    };
 }
 
-impl ops::AddAssign for Color {
-    fn add_assign(&mut self, other: Color) {
-        *self = *self + other;
-    }
+subtract!(Color, Color);
+subtract!(Color, &Color);
+subtract!(&Color, Color);
+subtract!(&Color, &Color);
+
+macro_rules! scalar_multiply_rhs {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Color;
+            fn mul(self, rhs: $rhs) -> Color {
+                Color::new(self.r() * rhs, self.g() * rhs, self.b() * rhs)
+            }
+        }
+    };
 }
 
-impl ops::SubAssign for Color {
-    fn sub_assign(&mut self, other: Color) {
-        *self = *self - other;
-    }
+scalar_multiply_rhs!(Color, f32);
+scalar_multiply_rhs!(&Color, f32);
+scalar_multiply_rhs!(Color, &f32);
+scalar_multiply_rhs!(&Color, &f32);
+
+macro_rules! scalar_multiply_lhs {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Color;
+            fn mul(self, rhs: $rhs) -> Color {
+                Color::new(self * rhs.r(), self * rhs.g(), self * rhs.b())
+            }
+        }
+    };
 }
 
-impl ops::Mul<f32> for Color {
-    type Output = Color;
-    fn mul(self, f: f32) -> Color {
-        Color::new(self[0] * f, self[1] * f, self[2] * f)
-    }
+scalar_multiply_lhs!(f32, Color);
+scalar_multiply_lhs!(&f32, Color);
+scalar_multiply_lhs!(f32, &Color);
+scalar_multiply_lhs!(&f32, &Color);
+
+macro_rules! hadamard_multiply {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Color;
+            fn mul(self, rhs: $rhs) -> Color {
+                Color::new(self.r() * rhs.r(), self.g() * rhs.g(), self.b() * rhs.b())
+            }
+        }
+    };
 }
 
-impl ops::Mul<Color> for f32 {
-    type Output = Color;
-    fn mul(self, c: Color) -> Color {
-        Color::new(self * c[0], self * c[1], self * c[2])
-    }
+hadamard_multiply!(Color, Color);
+hadamard_multiply!(&Color, Color);
+hadamard_multiply!(Color, &Color);
+hadamard_multiply!(&Color, &Color);
+
+macro_rules! scalar_divide {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Div<$rhs> for $lhs {
+            type Output = Color;
+            fn div(self, rhs: $rhs) -> Color {
+                self * (1.0 / rhs)
+            }
+        }
+    };
 }
 
-impl ops::Mul<Color> for Color {
-    type Output = Color;
-    fn mul(self, other: Color) -> Color {
-        Color::new(self[0] * other[0], self[1] * other[1], self[2] * other[2])
-    }
+scalar_divide!(Color, f32);
+scalar_divide!(&Color, f32);
+scalar_divide!(Color, &f32);
+scalar_divide!(&Color, &f32);
+
+macro_rules! hadamard_divide {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Div<$rhs> for $lhs {
+            type Output = Color;
+            fn div(self, rhs: $rhs) -> Color {
+                Color::new(self.r() / rhs.r(), self.g() / rhs.g(), self.b() / rhs.b())
+            }
+        }
+    };
 }
 
-impl ops::MulAssign<f32> for Color {
-    fn mul_assign(&mut self, f: f32) {
-        *self = *self * f;
-    }
+hadamard_divide!(Color, Color);
+hadamard_divide!(&Color, Color);
+hadamard_divide!(Color, &Color);
+hadamard_divide!(&Color, &Color);
+
+macro_rules! add_assign {
+    ( $rhs:ty ) => {
+        impl ops::AddAssign<$rhs> for Color {
+            fn add_assign(&mut self, rhs: $rhs) {
+                *self = *self + rhs
+            }
+        }
+    };
 }
 
-impl ops::MulAssign<Color> for Color {
-    fn mul_assign(&mut self, other: Color) {
-        *self = *self * other;
-    }
+add_assign!(Color);
+add_assign!(&Color);
+
+macro_rules! subtract_assign {
+    ( $rhs:ty ) => {
+        impl ops::SubAssign<$rhs> for Color {
+            fn sub_assign(&mut self, rhs: $rhs) {
+                *self = *self - rhs
+            }
+        }
+    };
 }
 
-impl ops::Div<f32> for Color {
-    type Output = Color;
-    fn div(self, f: f32) -> Color {
-        self * (1.0 / f)
-    }
+subtract_assign!(Color);
+subtract_assign!(&Color);
+
+macro_rules! scalar_multiply_assign {
+    ( $rhs:ty ) => {
+        impl ops::MulAssign<$rhs> for Color {
+            fn mul_assign(&mut self, rhs: $rhs) {
+                self.channels[0] = self.r() * rhs;
+                self.channels[1] = self.g() * rhs;
+                self.channels[2] = self.b() * rhs
+            }
+        }
+    };
 }
 
-impl ops::Div<Color> for Color {
-    type Output = Color;
-    fn div(self, other: Color) -> Color {
-        Color::new(self[0] / other[0], self[1] / other[1], self[2] / other[2])
-    }
+scalar_multiply_assign!(f32);
+scalar_multiply_assign!(&f32);
+
+macro_rules! hadamard_multiply_assign {
+    ( $rhs:ty ) => {
+        impl ops::MulAssign<$rhs> for Color {
+            fn mul_assign(&mut self, rhs: $rhs) {
+                self.channels[0] = self.r() * rhs.r();
+                self.channels[1] = self.g() * rhs.g();
+                self.channels[2] = self.b() * rhs.b()
+            }
+        }
+    };
 }
 
-impl ops::DivAssign<f32> for Color {
-    fn div_assign(&mut self, f: f32) {
-        *self *= 1.0 / f
-    }
+hadamard_multiply_assign!(Color);
+hadamard_multiply_assign!(&Color);
+
+macro_rules! scalar_divide_assign {
+    ( $rhs:ty ) => {
+        impl ops::DivAssign<$rhs> for Color {
+            fn div_assign(&mut self, rhs: $rhs) {
+                self.channels[0] = self.r() / rhs;
+                self.channels[1] = self.g() / rhs;
+                self.channels[2] = self.b() / rhs
+            }
+        }
+    };
 }
 
-impl ops::DivAssign<Color> for Color {
-    fn div_assign(&mut self, other: Color) {
-        *self = *self / other
-    }
+scalar_divide_assign!(f32);
+scalar_divide_assign!(&f32);
+
+macro_rules! hadamard_divide_assign {
+    ( $rhs:ty ) => {
+        impl ops::DivAssign<$rhs> for Color {
+            fn div_assign(&mut self, rhs: $rhs) {
+                self.channels[0] = self.r() / rhs.r();
+                self.channels[1] = self.g() / rhs.g();
+                self.channels[2] = self.b() / rhs.b()
+            }
+        }
+    };
 }
+
+hadamard_divide_assign!(Color);
+hadamard_divide_assign!(&Color);
 
 #[cfg(test)]
 mod tests {

@@ -5,6 +5,8 @@ use std::path::Path;
 
 use netpbmr::{ppm, EncodingType};
 
+/// Creates a new PPM file with the given color data.
+/// Performs gamma correction.
 pub fn create_ppm<P>(path: P, data: &[Color], w: u32, h: u32) -> Result<(), Box<dyn Error>>
 where
     P: AsRef<Path>,

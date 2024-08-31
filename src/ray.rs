@@ -1,5 +1,6 @@
 use crate::{Point3, Vec3};
 
+/// 3-D ray.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Ray {
     origin: Point3,
@@ -7,18 +8,22 @@ pub struct Ray {
 }
 
 impl Ray {
+    /// Creates a new ray.
     pub fn new(origin: Point3, direction: Vec3) -> Self {
         Self { origin, direction }
     }
 
+    /// Retrieves the ray's origin.
     pub fn origin(&self) -> &Point3 {
         &self.origin
     }
 
+    /// Retrieves the ray's direction.
     pub fn direction(&self) -> &Vec3 {
         &self.direction
     }
 
+    /// Determines the vector for the ray at a given parameter value.
     pub fn at(&self, t: f64) -> Point3 {
         self.origin + t * self.direction
     }

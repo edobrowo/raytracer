@@ -9,7 +9,7 @@ use std::error::Error;
 use std::sync::Arc;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // World
+    // World setup.
     let mut world = HittableList::new();
 
     let mat_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     world.add(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, mat_left));
     world.add(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, mat_right));
 
-    // Camera
+    // Camera setup.
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let samples_per_pixel = 100;
@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth)?;
 
-    // Render
+    // Renderer setup.
     use std::time::Instant;
     let now = Instant::now();
 
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let elapsed = now.elapsed();
     println!("Rendering: {:.2?}", elapsed);
 
-    // Save
+    // Save the rendered image.
     let (image_width, image_height) = camera.dim();
     image::create_ppm("sample.ppm", &data, image_width, image_height)?;
 

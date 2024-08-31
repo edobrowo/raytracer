@@ -2,62 +2,86 @@ use rand::{self, Rng};
 use std::fmt;
 use std::ops;
 
+/// 3-D vector.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Vec3 {
+    /// Array of vector components.
     components: [f64; 3],
 }
 
 pub type Point3 = Vec3;
 
 impl Vec3 {
+    /// Minimum error for vector operations.
     const ERROR: f64 = 1e-8;
 
+    /// Creates a new 3-D vector.
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self {
             components: [x, y, z],
         }
     }
 
+    /// Retrieves x component.
     pub fn x(&self) -> f64 {
         self[0]
     }
 
+    /// Retrieves y component.
     pub fn y(&self) -> f64 {
         self[1]
     }
 
+    /// Retrieves z component.
     pub fn z(&self) -> f64 {
         self[2]
     }
 
-    pub fn len_sqr(&self) -> f64 {
-        self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
+    /// Dot product of two vectors.
+    pub fn dot(&self, other: &Self) -> f64 {
+        self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
     }
 
+    /// Square of the length of the vector.
+    pub fn len_sqr(&self) -> f64 {
+        self.dot(self)
+    }
+
+    /// Length of the vector.
     pub fn len(&self) -> f64 {
         f64::sqrt(self.len_sqr())
     }
 
-    pub fn dot(v: &Self, w: &Self) -> f64 {
-        v.x() * w.x() + v.y() * w.y() + v.z() * w.z()
-    }
-
-    pub fn cross(v: &Self, w: &Self) -> Self {
+    /// Cross product of two vectors.
+    pub fn cross(&self, other: &Self) -> Self {
         Self::new(
-            v.y() * w.z() - v.z() * w.y(),
-            v.z() * w.x() - v.x() * w.z(),
-            v.x() * w.y() - v.y() * w.x(),
+            self.y() * other.z() - self.z() * other.y(),
+            self.z() * other.x() - self.x() * other.z(),
+            self.x() * other.y() - self.y() * other.x(),
         )
     }
 
-    pub fn unit(v: &Self) -> Self {
-        *v / v.len()
+    /// Creates a unit vector from the given vector.
+    pub fn unit(&self) -> Self {
+        self / self.len()
+    }
+
+    // TODO: test
+    /// Determines whether the given vector is approximately the zero vector.
+    pub fn is_almost_zero(&self) -> bool {
+        self.components.iter().all(|&v| f64::abs(v) < Self::ERROR)
+    }
+
+    // TODO: test
+    /// Reflects the vector in the given normal.
+    pub fn reflect(&self, normal: &Self) -> Self {
+        self - 2.0 * self.dot(normal) * normal
     }
 }
 
 impl fmt::Display for Vec3 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "({}, {}, {})", self[0], self[1], self[2])
+        write!(fmt, "({}, {}, {})", self.x(), self.y(), self.z())
     }
 }
 
@@ -74,97 +98,221 @@ impl ops::IndexMut<usize> for Vec3 {
     }
 }
 
-impl ops::Neg for Vec3 {
-    type Output = Vec3;
-    fn neg(self) -> Vec3 {
-        Vec3::new(-self[0], -self[1], -self[2])
-    }
+macro_rules! negate {
+    ( $exp:ty ) => {
+        impl ops::Neg for $exp {
+            type Output = Vec3;
+            fn neg(self) -> Vec3 {
+                Vec3::new(-self.x(), -self.y(), -self.z())
+            }
+        }
+    };
 }
 
-impl ops::Add for Vec3 {
-    type Output = Vec3;
-    fn add(self, other: Vec3) -> Vec3 {
-        Vec3::new(self[0] + other[0], self[1] + other[1], self[2] + other[2])
-    }
+negate!(Vec3);
+negate!(&Vec3);
+
+macro_rules! add {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Add<$rhs> for $lhs {
+            type Output = Vec3;
+            fn add(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self.x() + rhs.x(), self.y() + rhs.y(), self.z() + rhs.z())
+            }
+        }
+    };
 }
 
-impl ops::Sub for Vec3 {
-    type Output = Vec3;
-    fn sub(self, other: Vec3) -> Vec3 {
-        self + -other
-    }
+add!(Vec3, Vec3);
+add!(&Vec3, Vec3);
+add!(Vec3, &Vec3);
+add!(&Vec3, &Vec3);
+
+macro_rules! subtract {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Sub<$rhs> for $lhs {
+            type Output = Vec3;
+            fn sub(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self.x() - rhs.x(), self.y() - rhs.y(), self.z() - rhs.z())
+            }
+        }
+    };
 }
 
-impl ops::AddAssign for Vec3 {
-    fn add_assign(&mut self, other: Vec3) {
-        *self = *self + other;
-    }
+subtract!(Vec3, Vec3);
+subtract!(&Vec3, Vec3);
+subtract!(Vec3, &Vec3);
+subtract!(&Vec3, &Vec3);
+
+macro_rules! scalar_multiply_rhs {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Vec3;
+            fn mul(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self.x() * rhs, self.y() * rhs, self.z() * rhs)
+            }
+        }
+    };
 }
 
-impl ops::SubAssign for Vec3 {
-    fn sub_assign(&mut self, other: Vec3) {
-        *self = *self - other;
-    }
+scalar_multiply_rhs!(Vec3, f64);
+scalar_multiply_rhs!(&Vec3, f64);
+scalar_multiply_rhs!(Vec3, &f64);
+scalar_multiply_rhs!(&Vec3, &f64);
+
+macro_rules! scalar_multiply_lhs {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Vec3;
+            fn mul(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self * rhs.x(), self * rhs.y(), self * rhs.z())
+            }
+        }
+    };
 }
 
-impl ops::Mul<f64> for Vec3 {
-    type Output = Vec3;
-    fn mul(self, f: f64) -> Vec3 {
-        Vec3::new(self[0] * f, self[1] * f, self[2] * f)
-    }
+scalar_multiply_lhs!(f64, Vec3);
+scalar_multiply_lhs!(&f64, Vec3);
+scalar_multiply_lhs!(f64, &Vec3);
+scalar_multiply_lhs!(&f64, &Vec3);
+
+macro_rules! hadamard_multiply {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Mul<$rhs> for $lhs {
+            type Output = Vec3;
+            fn mul(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self.x() * rhs.x(), self.y() * rhs.y(), self.z() * rhs.z())
+            }
+        }
+    };
 }
 
-impl ops::Mul<Vec3> for f64 {
-    type Output = Vec3;
-    fn mul(self, v: Vec3) -> Vec3 {
-        Vec3::new(self * v[0], self * v[1], self * v[2])
-    }
+hadamard_multiply!(Vec3, Vec3);
+hadamard_multiply!(&Vec3, Vec3);
+hadamard_multiply!(Vec3, &Vec3);
+hadamard_multiply!(&Vec3, &Vec3);
+
+macro_rules! scalar_divide {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Div<$rhs> for $lhs {
+            type Output = Vec3;
+            fn div(self, rhs: $rhs) -> Vec3 {
+                self * (1.0 / rhs)
+            }
+        }
+    };
 }
 
-impl ops::Mul<Vec3> for Vec3 {
-    type Output = Vec3;
-    fn mul(self, other: Vec3) -> Vec3 {
-        Vec3::new(self[0] * other[0], self[1] * other[1], self[2] * other[2])
-    }
+scalar_divide!(Vec3, f64);
+scalar_divide!(&Vec3, f64);
+scalar_divide!(Vec3, &f64);
+scalar_divide!(&Vec3, &f64);
+
+macro_rules! hadamard_divide {
+    ( $lhs:ty , $rhs:ty ) => {
+        impl ops::Div<$rhs> for $lhs {
+            type Output = Vec3;
+            fn div(self, rhs: $rhs) -> Vec3 {
+                Vec3::new(self.x() / rhs.x(), self.y() / rhs.y(), self.z() / rhs.z())
+            }
+        }
+    };
 }
 
-impl ops::MulAssign<f64> for Vec3 {
-    fn mul_assign(&mut self, f: f64) {
-        *self = *self * f;
-    }
+hadamard_divide!(Vec3, Vec3);
+hadamard_divide!(&Vec3, Vec3);
+hadamard_divide!(Vec3, &Vec3);
+hadamard_divide!(&Vec3, &Vec3);
+
+macro_rules! add_assign {
+    ( $rhs:ty ) => {
+        impl ops::AddAssign<$rhs> for Vec3 {
+            fn add_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() + rhs.x();
+                self.components[1] = self.y() + rhs.y();
+                self.components[2] = self.z() + rhs.z()
+            }
+        }
+    };
 }
 
-impl ops::MulAssign<Vec3> for Vec3 {
-    fn mul_assign(&mut self, other: Vec3) {
-        *self = *self * other;
-    }
+add_assign!(Vec3);
+add_assign!(&Vec3);
+
+macro_rules! subtract_assign {
+    ( $rhs:ty ) => {
+        impl ops::SubAssign<$rhs> for Vec3 {
+            fn sub_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() - rhs.x();
+                self.components[1] = self.y() - rhs.y();
+                self.components[2] = self.z() - rhs.z()
+            }
+        }
+    };
 }
 
-impl ops::Div<f64> for Vec3 {
-    type Output = Vec3;
-    fn div(self, f: f64) -> Vec3 {
-        self * (1.0 / f)
-    }
+subtract_assign!(Vec3);
+subtract_assign!(&Vec3);
+
+macro_rules! scalar_multiply_assign {
+    ( $rhs:ty ) => {
+        impl ops::MulAssign<$rhs> for Vec3 {
+            fn mul_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() * rhs;
+                self.components[1] = self.y() * rhs;
+                self.components[2] = self.z() * rhs
+            }
+        }
+    };
 }
 
-impl ops::Div<Vec3> for Vec3 {
-    type Output = Vec3;
-    fn div(self, other: Vec3) -> Vec3 {
-        Vec3::new(self[0] / other[0], self[1] / other[1], self[2] / other[2])
-    }
+scalar_multiply_assign!(f64);
+scalar_multiply_assign!(&f64);
+
+macro_rules! hadamard_multiply_assign {
+    ( $rhs:ty ) => {
+        impl ops::MulAssign<$rhs> for Vec3 {
+            fn mul_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() * rhs.x();
+                self.components[1] = self.y() * rhs.y();
+                self.components[2] = self.z() * rhs.z()
+            }
+        }
+    };
 }
 
-impl ops::DivAssign<f64> for Vec3 {
-    fn div_assign(&mut self, f: f64) {
-        *self *= 1.0 / f
-    }
+hadamard_multiply_assign!(Vec3);
+hadamard_multiply_assign!(&Vec3);
+
+macro_rules! scalar_divide_assign {
+    ( $rhs:ty ) => {
+        impl ops::DivAssign<$rhs> for Vec3 {
+            fn div_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() / rhs;
+                self.components[1] = self.y() / rhs;
+                self.components[2] = self.z() / rhs
+            }
+        }
+    };
 }
 
-impl ops::DivAssign<Vec3> for Vec3 {
-    fn div_assign(&mut self, other: Vec3) {
-        *self = *self / other
-    }
+scalar_divide_assign!(f64);
+scalar_divide_assign!(&f64);
+
+macro_rules! hadamard_divide_assign {
+    ( $rhs:ty ) => {
+        impl ops::DivAssign<$rhs> for Vec3 {
+            fn div_assign(&mut self, rhs: $rhs) {
+                self.components[0] = self.x() / rhs.x();
+                self.components[1] = self.y() / rhs.y();
+                self.components[2] = self.z() / rhs.z()
+            }
+        }
+    };
 }
+
+hadamard_divide_assign!(Vec3);
+hadamard_divide_assign!(&Vec3);
 
 impl Vec3 {
     fn random() -> Self {
@@ -189,24 +337,16 @@ impl Vec3 {
     }
 
     pub fn random_unit() -> Self {
-        Self::unit(&Self::random_in_unit_sphere())
+        Self::random_in_unit_sphere().unit()
     }
 
     pub fn random_on_hemisphere(normal: &Self) -> Self {
         let u = Self::random_unit();
-        if Self::dot(&u, normal) > 0.0 {
+        if u.dot(normal) > 0.0 {
             u
         } else {
             -u
         }
-    }
-
-    pub fn is_almost_zero(&self) -> bool {
-        self.components.iter().all(|&v| f64::abs(v) < Self::ERROR)
-    }
-
-    pub fn reflect(v: &Self, normal: &Self) -> Self {
-        *v - 2.0 * Self::dot(v, normal) * *normal
     }
 }
 
@@ -304,17 +444,17 @@ mod tests {
             vec3_to_fixed([5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0])
         );
 
-        let u = Vec3::unit(&u);
+        let u = u.unit();
         assert_eq!(vec3_to_fixed([u[0], u[1], u[2]]), [267261, 534522, 801784]);
 
-        let u = Vec3::dot(&v, &w);
+        let u = v.dot(&w);
         assert_eq!(u, 32.0);
-        let u = Vec3::dot(&w, &v);
+        let u = w.dot(&v);
         assert_eq!(u, 32.0);
 
-        let u = Vec3::cross(&v, &w);
+        let u = v.cross(&w);
         assert_eq!([u[0], u[1], u[2]], [-3.0, 6.0, -3.0]);
-        let u = Vec3::cross(&w, &v);
+        let u = w.cross(&v);
         assert_eq!([u[0], u[1], u[2]], [3.0, -6.0, 3.0]);
     }
 }

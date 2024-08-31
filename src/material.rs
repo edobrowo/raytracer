@@ -1,5 +1,6 @@
 use crate::{hittable::HitRecord, Color, Ray, Vec3};
 
+/// Specifies how rays scatter off of geometry.
 pub trait Material {
     /// Determines the reflected ray and color produced by a particular hit.
     #[allow(unused)]
@@ -7,8 +8,6 @@ pub trait Material {
         None
     }
 }
-
-// TODO: add sometimes-scatter and attentuated scatter modes
 
 /// Lambertian diffuse material.
 #[derive(Debug, Clone)]
@@ -44,7 +43,11 @@ impl Material for Lambertian {
 /// Metallic material.
 #[derive(Debug, Clone)]
 pub struct Metallic {
+    /// Fractional reflectance color.
     albedo: Color,
+
+    /// Fuzz radius. Specifies a sphere around a perfect reflected ray
+    /// in which the actual reflected ray can be generated.
     fuzz: f64,
 }
 
@@ -52,7 +55,7 @@ impl Metallic {
     // Creates a new metallic material.
     pub fn new(albedo: &Color, fuzz: f64) -> Self {
         Metallic {
-            albedo: albedo.clone(),
+            albedo: *albedo,
             fuzz: f64::min(fuzz, 1.0),
         }
     }
@@ -60,15 +63,15 @@ impl Metallic {
 
 impl Material for Metallic {
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
-        let reflected = Vec3::reflect(ray.direction(), &rec.normal);
+        let reflected = ray.direction().reflect(&rec.normal);
 
         // Fuzz the reflected ray within a fuzz sphere.
-        let reflected = Vec3::unit(&reflected) + (self.fuzz * Vec3::random_unit());
+        let reflected = reflected.unit() + (self.fuzz * &Vec3::random_unit());
 
         let scattered = Ray::new(rec.p, reflected);
 
         // If the scattered ray would return back to the surface, just absorb it.
-        if Vec3::dot(scattered.direction(), &rec.normal) > 0.0 {
+        if scattered.direction().dot(&rec.normal) > 0.0 {
             Some((scattered, self.albedo))
         } else {
             None

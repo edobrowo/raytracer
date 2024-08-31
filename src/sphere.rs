@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
-use crate::{Interval, Point3, Ray, Vec3};
+use crate::{Interval, Point3, Ray};
 
+/// Sphere object in world space and material.
 #[derive(Clone)]
 pub struct Sphere {
     center: Point3,
@@ -12,6 +13,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
+    /// Creates a new sphere.
     pub fn new(center: Point3, radius: f64, material: Arc<dyn Material>) -> Self {
         Self {
             center,
@@ -24,9 +26,9 @@ impl Sphere {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         // Use discriminant to determine number of intersections
-        let oc = *ray.origin() - self.center;
+        let oc = ray.origin() - &self.center;
         let a = ray.direction().len_sqr();
-        let half_b = Vec3::dot(&oc, ray.direction());
+        let half_b = oc.dot(ray.direction());
         let c = oc.len_sqr() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;
@@ -48,8 +50,8 @@ impl Hittable for Sphere {
         // Compute the normal, i.e. the reflected ray
         let t = root;
         let p = ray.at(root);
-        let outward_normal = (p - self.center) / self.radius;
+        let outward_normal = (&p - &self.center) / self.radius;
 
-        Some(HitRecord::new(p, outward_normal, t, ray, &*self.material))
+        Some(HitRecord::new(&p, &outward_normal, t, ray, &*self.material))
     }
 }

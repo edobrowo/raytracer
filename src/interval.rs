@@ -1,8 +1,12 @@
 use core::f64;
 
+/// Defines an interval defined along [`min`, `max`].
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Interval {
+    /// Minimum of the interval.
     min: f64,
+
+    /// Maximum of the interval.
     max: f64,
 }
 
@@ -10,34 +14,42 @@ impl Interval {
     pub const EMPTY: Self = Self::new(f64::INFINITY, f64::NEG_INFINITY);
     pub const UNIVERSE: Self = Self::new(f64::NEG_INFINITY, f64::INFINITY);
 
+    /// Creates a new interval.
     pub const fn new(min: f64, max: f64) -> Self {
         Self { min, max }
     }
 
+    /// Retrieves the minimum of the interval.
     pub fn min(&self) -> f64 {
         self.min
     }
 
+    /// Retrieves the maximum of the interval.
     pub fn max(&self) -> f64 {
         self.max
     }
 
+    /// Checks whether `x` is in `[min, max]` (bounds-inclusive).
     pub fn contains(&self, x: f64) -> bool {
         self.min <= x && x <= self.max
     }
 
+    /// Checks whether `x` is in `(min, max)` (bounds-exclusive).
     pub fn surrounds(&self, x: f64) -> bool {
         self.min < x && x < self.max
     }
 
+    /// Checks whether `x` is in `[min, max)` (lower bound-inclusive, upper bound-exclusive).
     pub fn surrounds_or_min(&self, x: f64) -> bool {
         self.min <= x && x < self.max
     }
 
+    /// Checks whether `x` is in `(min, max]` (lower bound-exclusive, upper bound-inclusive).
     pub fn surrounds_or_max(&self, x: f64) -> bool {
         self.min < x && x <= self.max
     }
 
+    /// Clamps `x` within the inclusive bounds of the interval.
     pub fn clamp(&self, x: f64) -> f64 {
         if x < self.min {
             self.min
