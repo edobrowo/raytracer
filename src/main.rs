@@ -14,8 +14,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mat_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
     let mat_center = Arc::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
-    let mat_left = Arc::new(Metallic::new(&Color::new(0.8, 0.8, 0.8)));
-    let mat_right = Arc::new(Metallic::new(&Color::new(0.6, 0.6, 0.2)));
+    let mat_left = Arc::new(Metallic::new(&Color::new(0.8, 0.8, 0.8), 0.3));
+    let mat_right = Arc::new(Metallic::new(&Color::new(0.6, 0.6, 0.2), 1.0));
 
     world.add(Sphere::new(
         Point3::new(0.0, -100.5, -1.0),

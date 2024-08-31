@@ -45,13 +45,15 @@ impl Material for Lambertian {
 #[derive(Debug, Clone)]
 pub struct Metallic {
     albedo: Color,
+    fuzz: f64,
 }
 
 impl Metallic {
     // Creates a new metallic material.
-    pub fn new(albedo: &Color) -> Self {
+    pub fn new(albedo: &Color, fuzz: f64) -> Self {
         Metallic {
             albedo: albedo.clone(),
+            fuzz: f64::min(fuzz, 1.0),
         }
     }
 }
@@ -59,6 +61,17 @@ impl Metallic {
 impl Material for Metallic {
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = Vec3::reflect(ray.direction(), &rec.normal);
-        Some((Ray::new(rec.p, reflected), self.albedo))
+
+        // Fuzz the reflected ray within a fuzz sphere.
+        let reflected = Vec3::unit(&reflected) + (self.fuzz * Vec3::random_unit());
+
+        let scattered = Ray::new(rec.p, reflected);
+
+        // If the scattered ray would return back to the surface, just absorb it.
+        if Vec3::dot(scattered.direction(), &rec.normal) > 0.0 {
+            Some((scattered, self.albedo))
+        } else {
+            None
+        }
     }
 }
