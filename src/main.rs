@@ -1,7 +1,7 @@
 use raytracer::camera::Camera;
 use raytracer::hittable::HittableList;
 use raytracer::image;
-use raytracer::material::{Lambertian, Metallic};
+use raytracer::material::{Dielectric, Lambertian, Metallic};
 use raytracer::sphere::Sphere;
 use raytracer::Color;
 use raytracer::Point3;
@@ -14,7 +14,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mat_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
     let mat_center = Arc::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
-    let mat_left = Arc::new(Metallic::new(&Color::new(0.8, 0.8, 0.8), 0.3));
+    let mat_left = Arc::new(Dielectric::new(1.5));
+    let mat_bubble = Arc::new(Dielectric::new(1.0 / 1.5));
     let mat_right = Arc::new(Metallic::new(&Color::new(0.6, 0.6, 0.2), 1.0));
 
     world.add(Sphere::new(
@@ -24,6 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ));
     world.add(Sphere::new(Point3::new(0.0, 0.0, -1.2), 0.5, mat_center));
     world.add(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, mat_left));
+    world.add(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.4, mat_bubble));
     world.add(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, mat_right));
 
     // Camera setup.

@@ -4,16 +4,16 @@ use rand::{self, Rng};
 /// Camera information that defines the viewport into worldspace.
 pub struct Camera {
     /// Image plane aspect ratio.
-    aspect_ratio: f64,
+    pub aspect_ratio: f64,
 
     /// Image plane width in pixels.
-    image_width: u32,
+    pub image_width: u32,
 
     /// Image plane height in pixels.
-    image_height: u32,
+    pub image_height: u32,
 
     /// Camera coordinates.
-    center: Point3,
+    pub center: Point3,
 
     /// Position of upper-left pixel, i.e., pixel at (0, 0).
     pixel00_loc: Point3,

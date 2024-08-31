@@ -3,13 +3,18 @@ use std::ops;
 
 use crate::Interval;
 
+/// RGB color.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Color {
     channels: [f32; 3],
 }
 
 impl Color {
-    const INTENSITY: Interval = Interval::new(0.0, 0.999);
+    /// Used to clamp color values when converting to byte representations
+    const INTENSITY: Interval = Interval::new(0.0, 0.999999);
+
+    /// Minimum error for color operations.
+    const ERROR: f32 = 1e-6;
 
     pub fn new(r: f32, g: f32, b: f32) -> Self {
         Self {
@@ -17,18 +22,36 @@ impl Color {
         }
     }
 
+    /// Retrieve the red channel.
     pub fn r(&self) -> f32 {
         self[0]
     }
 
+    /// Retrieve the green channel.
     pub fn g(&self) -> f32 {
         self[1]
     }
 
+    /// Retrieve the blue channel.
     pub fn b(&self) -> f32 {
         self[2]
     }
 
+    /// Determines whether the given color is approximately all zero (black in color).
+    pub fn is_almost_zero(&self) -> bool {
+        self.channels
+            .iter()
+            .all(|&channel| f32::abs(channel) < Self::ERROR)
+    }
+
+    /// Determines whether two colors are approximately equal.
+    pub fn is_almost_equal(&self, color: &Self) -> bool {
+        Self::is_almost_zero(&(self - color))
+    }
+}
+
+impl Color {
+    /// Convert to RGB24 byte representation.
     pub fn to_rgb24(&self) -> [u8; 3] {
         [
             Self::make_byte(self.r()),
@@ -37,10 +60,14 @@ impl Color {
         ]
     }
 
+    /// Make byte from a channel value.
     fn make_byte(channel: f32) -> u8 {
         f64::floor(Self::INTENSITY.clamp(channel as f64) * 255.0) as u8
     }
+}
 
+impl Color {
+    /// Gamma correct a channel value.
     fn linear_to_gamma(channel: f32) -> f32 {
         if channel > 0.0 {
             f32::sqrt(channel)
@@ -49,6 +76,7 @@ impl Color {
         }
     }
 
+    /// Gamma correct the RGB color.
     pub fn gamma_correct(&self) -> Self {
         Self::new(
             Self::linear_to_gamma(self.r()),
@@ -279,147 +307,134 @@ hadamard_divide_assign!(&Color);
 mod tests {
     use super::Color;
 
-    fn f32_to_fixed(f: f32) -> u64 {
-        f32::round(f * 1000000.0) as u64
-    }
+    #[test]
+    fn color_channels() {
+        let c = Color::new(0.1, 0.2, 0.3);
+        assert_eq!(c[0], 0.1);
+        assert_eq!(c[1], 0.2);
+        assert_eq!(c[2], 0.3);
 
-    fn color_to_fixed(c: [f32; 3]) -> [u64; 3] {
-        [f32_to_fixed(c[0]), f32_to_fixed(c[1]), f32_to_fixed(c[2])]
+        let c = Color::new(0.4, 0.5, 0.6);
+        assert_eq!(c[0], 0.4);
+        assert_eq!(c[1], 0.5);
+        assert_eq!(c[2], 0.6);
     }
 
     #[test]
-    fn color_general() {
+    fn _almost_zero() {
+        let c = Color::new(0.0, 0.0, 0.0);
+        assert!(c.is_almost_zero());
+
+        let c = Color::new(0.0, 0.001, 0.0);
+        assert!(!c.is_almost_zero());
+
+        let c = Color::new(0.0, 1e-7, 0.0);
+        assert!(c.is_almost_zero());
+    }
+
+    #[test]
+    fn color_almost_equal() {
+        let c = Color::new(0.1, 0.2, 0.3);
+        let d = Color::new(0.4, 0.5, 0.6);
+        let e = Color::new(1.0, 0.0, 1.0);
+
+        assert!(c.is_almost_equal(&c));
+        assert!(!c.is_almost_equal(&d));
+        assert!(!c.is_almost_equal(&e));
+
+        assert!(d.is_almost_equal(&d));
+        assert!(!d.is_almost_equal(&c));
+        assert!(!d.is_almost_equal(&e));
+
+        assert!(e.is_almost_equal(&e));
+        assert!(!e.is_almost_equal(&c));
+        assert!(!e.is_almost_equal(&d));
+
+        let d = Color::new(0.1 + 1e-5, 0.2, 0.3);
+        let e = Color::new(0.1 + 1e-8, 0.2, 0.3);
+
+        assert!(c.is_almost_equal(&c));
+        assert!(!c.is_almost_equal(&d));
+        assert!(c.is_almost_equal(&e));
+    }
+
+    #[test]
+    fn color_arithmetic() {
         let c = Color::new(0.1, 0.2, 0.3);
         let d = Color::new(0.4, 0.5, 0.6);
 
-        assert_eq!(f32_to_fixed(c[0]), f32_to_fixed(0.1));
-        assert_eq!(f32_to_fixed(c[1]), f32_to_fixed(0.2));
-        assert_eq!(f32_to_fixed(c[2]), f32_to_fixed(0.3));
+        let e = c + d;
+        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        let e = d + c;
+        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        let mut e = c;
+        assert!(e.is_almost_equal(&Color::new(0.1, 0.2, 0.3)));
+        e += d;
+        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        e += c;
+        assert!(e.is_almost_equal(&Color::new(0.6, 0.9, 1.2)));
+
+        let e = c - d;
+        assert!(e.is_almost_equal(&Color::new(-0.3, -0.3, -0.3)));
+        let e = d - c;
+        assert!(e.is_almost_equal(&Color::new(0.3, 0.3, 0.3)));
+        let mut e = Color::new(0.0, 0.0, 0.0);
+        e += c + d;
+        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        e -= c;
+        assert!(e.is_almost_equal(&Color::new(0.4, 0.5, 0.6)));
+
+        let e = 2.0 * c;
+        assert!(e.is_almost_equal(&Color::new(0.2, 0.4, 0.6)));
+        let e = c * 2.0;
+        assert!(e.is_almost_equal(&Color::new(0.2, 0.4, 0.6)));
+        let mut e = 3.0 * c;
+        assert!(e.is_almost_equal(&Color::new(0.3, 0.6, 0.9)));
+        e *= 1.1;
+        assert!(e.is_almost_equal(&Color::new(0.33, 0.66, 0.99)));
+        e /= 2.0;
+        assert!(e.is_almost_equal(&Color::new(0.33 / 2.0, 0.66 / 2.0, 0.99 / 2.0)));
+        e /= 3.0;
+        assert!(e.is_almost_equal(&Color::new(0.33 / 6.0, 0.66 / 6.0, 0.99 / 6.0)));
+
+        let e = c * d;
+        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        let e = d * c;
+        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        let e = c / d;
+        assert!(e.is_almost_equal(&Color::new(0.1 / 0.4, 0.2 / 0.5, 0.3 / 0.6)));
+        let e = d / c;
+        assert!(e.is_almost_equal(&Color::new(4.0, 2.5, 2.0)));
+        let mut e = c;
+        e *= d;
+        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        e /= d;
+        assert!(e.is_almost_equal(&Color::new(0.1, 0.2, 0.3)));
+        e /= d;
+        assert!(e.is_almost_equal(&Color::new(1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0)));
+    }
+
+    #[test]
+    fn color_bytes() {
+        let c = Color::new(0.1, 0.2, 0.3);
         assert_eq!(c.to_rgb24(), [25, 51, 76]);
 
-        assert_eq!(f32_to_fixed(d[0]), f32_to_fixed(0.4));
-        assert_eq!(f32_to_fixed(d[1]), f32_to_fixed(0.5));
-        assert_eq!(f32_to_fixed(d[2]), f32_to_fixed(0.6));
-        assert_eq!(d.to_rgb24(), [102, 127, 153]);
+        let c = Color::new(0.4, 0.5, 0.6);
+        assert_eq!(c.to_rgb24(), [102, 127, 153]);
+    }
 
-        let u = c + d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.5, 0.7, 0.9])
-        );
-        let u = d + c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.5, 0.7, 0.9])
-        );
-        let mut u = c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.1, 0.2, 0.3])
-        );
-        u += d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.5, 0.7, 0.9])
-        );
-        u += c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.6, 0.9, 1.2])
-        );
+    #[test]
+    fn color_gamma_correct() {
+        let c = Color::new(0.1, 0.2, 0.3);
+        assert!(c.gamma_correct().is_almost_equal(&Color::new(
+            f32::sqrt(0.1),
+            f32::sqrt(0.2),
+            f32::sqrt(0.3)
+        )));
 
-        let u = c - d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.0, 0.0, 0.0])
-        );
-        let u = d - c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.3, 0.3, 0.3])
-        );
-        let mut u = Color::new(0.0, 0.0, 0.0);
-        u += c + d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.5, 0.7, 0.9])
-        );
-        u -= c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.4, 0.5, 0.6])
-        );
-
-        let u = c * d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.04, 0.1, 0.18])
-        );
-        let u = d * c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.04, 0.1, 0.18])
-        );
-        let u = c / d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.1 / 0.4, 0.2 / 0.5, 0.3 / 0.6])
-        );
-        let u = d / c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([4.0, 2.5, 2.0])
-        );
-        let mut u = c;
-        u *= d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.04, 0.1, 0.18])
-        );
-        u /= d;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.1, 0.2, 0.3])
-        );
-        u /= d;
-        assert_eq!(
-            [f32_to_fixed(u[0]), f32_to_fixed(u[1]), f32_to_fixed(u[2])],
-            [
-                f32_to_fixed(1.0 / 4.0),
-                f32_to_fixed(2.0 / 5.0),
-                f32_to_fixed(3.0 / 6.0)
-            ]
-        );
-
-        let u = 2.0 * c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.2, 0.4, 0.6])
-        );
-        let u = c * 2.0;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.2, 0.4, 0.6])
-        );
-        let mut u = 3.0 * c;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.3, 0.6, 0.9])
-        );
-        u *= 1.1;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.33, 0.66, 0.99])
-        );
-        u /= 2.0;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.33 / 2.0, 0.66 / 2.0, 0.99 / 2.0])
-        );
-        u /= 3.0;
-        assert_eq!(
-            color_to_fixed([u[0], u[1], u[2]]),
-            color_to_fixed([0.33 / 6.0, 0.66 / 6.0, 0.99 / 6.0])
-        );
+        let c = Color::new(0.0, 1.0, 0.0);
+        assert!(c
+            .gamma_correct()
+            .is_almost_equal(&Color::new(0.0, 1.0, 0.0)));
     }
 }

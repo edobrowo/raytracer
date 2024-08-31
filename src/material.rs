@@ -1,4 +1,7 @@
-use crate::{hittable::HitRecord, Color, Ray, Vec3};
+use crate::{
+    hittable::{HitRecord, Orientation},
+    Color, Ray, Vec3,
+};
 use rand::{self, Rng};
 
 /// Specifies how rays scatter off of geometry.
@@ -114,7 +117,7 @@ impl Metallic {
 
 impl Material for Metallic {
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
-        let reflected = ray.direction().reflect(&rec.normal);
+        let reflected = Vec3::reflect(ray.direction(), &rec.normal);
 
         // Fuzz the reflected ray within a fuzz sphere.
         let reflected = reflected.unit() + (self.fuzz * &Vec3::random_unit());
@@ -122,10 +125,61 @@ impl Material for Metallic {
         let scattered = Ray::new(rec.p, reflected);
 
         // If the scattered ray would return back to the surface, just absorb it.
-        if scattered.direction().dot(&rec.normal) > 0.0 {
+        if Vec3::dot(scattered.direction(), &rec.normal) > 0.0 {
             Some((scattered, self.albedo))
         } else {
             None
         }
+    }
+}
+
+/// Dielectric material.
+#[derive(Debug, Clone)]
+pub struct Dielectric {
+    /// Refractive index in a vacuum.
+    refractive_index: f64,
+}
+
+impl Dielectric {
+    /// Creates a new dielectric material.
+    pub fn new(refractive_index: f64) -> Self {
+        Self { refractive_index }
+    }
+
+    /// Compute reflectance using Schlick approximation.
+    /// `cosine` should be the dot of a vector and a surface normal, both normalized.
+    pub fn reflectance_schlick(cosine: f64, refractive_index: f64) -> f64 {
+        let r0 = (1.0 - refractive_index) / (1.0 + refractive_index);
+        let r0 = r0 * r0;
+        r0 + (1.0 - r0) * f64::powi(1.0 - cosine, 5)
+    }
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        let ri = if rec.orientation == Orientation::Exterior {
+            1.0 / self.refractive_index
+        } else {
+            self.refractive_index
+        };
+
+        let unit_direction = ray.direction().unit();
+        let cos_theta = f64::min(Vec3::dot(&-unit_direction, &rec.normal), 1.0);
+        let sin_theta = f64::sqrt(1.0 - cos_theta * cos_theta);
+
+        let total_internal_reflection = ri * sin_theta > 1.0;
+
+        let schlick = Dielectric::reflectance_schlick(cos_theta, ri);
+        let reflect_schlick = schlick > rand::thread_rng().gen::<f64>();
+
+        let direction = if total_internal_reflection || reflect_schlick {
+            Vec3::reflect(&unit_direction, &rec.normal)
+        } else {
+            Vec3::refract(&unit_direction, &rec.normal, ri)
+        };
+
+        let scattered = Ray::new(rec.p, direction);
+        let attenuation = Color::new(1.0, 1.0, 1.0);
+        Some((scattered, attenuation))
     }
 }

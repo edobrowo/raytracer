@@ -11,6 +11,7 @@ pub struct Vec3 {
 
 pub type Point3 = Vec3;
 
+/// Basic component functions.
 impl Vec3 {
     /// Minimum error for vector operations.
     const ERROR: f64 = 1e-8;
@@ -37,14 +38,27 @@ impl Vec3 {
         self[2]
     }
 
+    /// Determines whether the given vector is approximately the zero vector.
+    pub fn is_almost_zero(&self) -> bool {
+        self.components.iter().all(|&ui| f64::abs(ui) < Self::ERROR)
+    }
+
+    /// Determines whether two vectors are approximately equal.
+    pub fn is_almost_equal(&self, v: &Self) -> bool {
+        Self::is_almost_zero(&(self - v))
+    }
+}
+
+/// Geometry operations.
+impl Vec3 {
     /// Dot product of two vectors.
-    pub fn dot(&self, other: &Self) -> f64 {
-        self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
+    pub fn dot(u: &Self, v: &Self) -> f64 {
+        u.x() * v.x() + u.y() * v.y() + u.z() * v.z()
     }
 
     /// Square of the length of the vector.
     pub fn len_sqr(&self) -> f64 {
-        self.dot(self)
+        Self::dot(self, self)
     }
 
     /// Length of the vector.
@@ -53,11 +67,11 @@ impl Vec3 {
     }
 
     /// Cross product of two vectors.
-    pub fn cross(&self, other: &Self) -> Self {
+    pub fn cross(u: &Self, v: &Self) -> Self {
         Self::new(
-            self.y() * other.z() - self.z() * other.y(),
-            self.z() * other.x() - self.x() * other.z(),
-            self.x() * other.y() - self.y() * other.x(),
+            u.y() * v.z() - u.z() * v.y(),
+            u.z() * v.x() - u.x() * v.z(),
+            u.x() * v.y() - u.y() * v.x(),
         )
     }
 
@@ -65,17 +79,62 @@ impl Vec3 {
     pub fn unit(&self) -> Self {
         self / self.len()
     }
-
-    // TODO: test
-    /// Determines whether the given vector is approximately the zero vector.
-    pub fn is_almost_zero(&self) -> bool {
-        self.components.iter().all(|&v| f64::abs(v) < Self::ERROR)
+    /// Reflects the vector in the given normal.
+    pub fn reflect(v: &Self, normal: &Self) -> Self {
+        v - 2.0 * Self::dot(v, normal) * normal
     }
 
-    // TODO: test
-    /// Reflects the vector in the given normal.
-    pub fn reflect(&self, normal: &Self) -> Self {
-        self - 2.0 * self.dot(normal) * normal
+    /// Refracts the vector across the given normal with in and target refractive index.
+    pub fn refract(uv: &Self, normal: &Self, eta_i_over_eta_t: f64) -> Self {
+        let cos_theta = f64::min(Self::dot(&-uv, normal), 1.0);
+
+        // Snell's law
+        let ray_out_perp = eta_i_over_eta_t * (uv + cos_theta * normal);
+        let ray_out_para = -f64::sqrt(f64::abs(1.0 - ray_out_perp.len_sqr())) * normal;
+
+        ray_out_perp + ray_out_para
+    }
+}
+
+/// Random generation.
+impl Vec3 {
+    /// Generate a random vector where each component has value between 0 and 1.
+    fn random() -> Self {
+        Self::new(
+            rand::thread_rng().gen::<f64>(),
+            rand::thread_rng().gen::<f64>(),
+            rand::thread_rng().gen::<f64>(),
+        )
+    }
+
+    /// Generate a random vector scaled to within the given range.
+    fn random_in_range(min: f64, max: f64) -> Self {
+        Self::new(min, min, min) + (max - min) * Self::random()
+    }
+
+    /// Generate a random vector in the unit sphere.
+    fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random_in_range(-1.0, 1.0);
+            if p.len_sqr() < 1.0 {
+                return p;
+            }
+        }
+    }
+
+    /// Generate a random unit vector.
+    pub fn random_unit() -> Self {
+        Self::random_in_unit_sphere().unit()
+    }
+
+    /// Generate a random unit vector on the same hemisphere as a surface normal.
+    pub fn random_on_hemisphere(normal: &Self) -> Self {
+        let u = Self::random_unit();
+        if Self::dot(&u, normal) > 0.0 {
+            u
+        } else {
+            -u
+        }
     }
 }
 
@@ -314,68 +373,65 @@ macro_rules! hadamard_divide_assign {
 hadamard_divide_assign!(Vec3);
 hadamard_divide_assign!(&Vec3);
 
-impl Vec3 {
-    fn random() -> Self {
-        Self::new(
-            rand::thread_rng().gen::<f64>(),
-            rand::thread_rng().gen::<f64>(),
-            rand::thread_rng().gen::<f64>(),
-        )
-    }
-
-    fn random_in_range(min: f64, max: f64) -> Self {
-        Self::new(min, min, min) + (max - min) * Self::random()
-    }
-
-    fn random_in_unit_sphere() -> Self {
-        loop {
-            let p = Self::random_in_range(-1.0, 1.0);
-            if p.len_sqr() < 1.0 {
-                return p;
-            }
-        }
-    }
-
-    pub fn random_unit() -> Self {
-        Self::random_in_unit_sphere().unit()
-    }
-
-    pub fn random_on_hemisphere(normal: &Self) -> Self {
-        let u = Self::random_unit();
-        if u.dot(normal) > 0.0 {
-            u
-        } else {
-            -u
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::Vec3;
 
-    fn f64_to_fixed(f: f64) -> u64 {
-        f64::round(f * 1000000.0) as u64
-    }
-
-    fn vec3_to_fixed(c: [f64; 3]) -> [u64; 3] {
-        [f64_to_fixed(c[0]), f64_to_fixed(c[1]), f64_to_fixed(c[2])]
-    }
-
     #[test]
-    fn vec3_general() {
+    fn vec3_components() {
         let v = Vec3::new(1.0, 2.0, 3.0);
-        let w = Vec3::new(4.0, 5.0, 6.0);
-
         assert_eq!(v[0], 1.0);
         assert_eq!(v[1], 2.0);
         assert_eq!(v[2], 3.0);
-        assert_eq!(f64_to_fixed(v.len()), 3741657);
 
-        assert_eq!(w[0], 4.0);
-        assert_eq!(w[1], 5.0);
-        assert_eq!(w[2], 6.0);
-        assert_eq!(f64_to_fixed(w.len()), 8774964);
+        let v = Vec3::new(4.0, 5.0, 6.0);
+        assert_eq!(v[0], 4.0);
+        assert_eq!(v[1], 5.0);
+        assert_eq!(v[2], 6.0);
+    }
+
+    #[test]
+    fn vec3_almost_zero() {
+        let u = Vec3::new(0.0, 0.0, 0.0);
+        assert!(u.is_almost_zero());
+
+        let u = Vec3::new(0.0, 0.001, 0.0);
+        assert!(!u.is_almost_zero());
+
+        let u = Vec3::new(0.0, 1e-10, 0.0);
+        assert!(u.is_almost_zero());
+    }
+
+    #[test]
+    fn vec3_almost_equal() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let w = Vec3::new(4.0, 5.0, 6.0);
+        let x = Vec3::new(-1.0, -2.0, -3.0);
+
+        assert!(v.is_almost_equal(&v));
+        assert!(!v.is_almost_equal(&w));
+        assert!(!v.is_almost_equal(&x));
+
+        assert!(w.is_almost_equal(&w));
+        assert!(!w.is_almost_equal(&v));
+        assert!(!w.is_almost_equal(&x));
+
+        assert!(x.is_almost_equal(&x));
+        assert!(!x.is_almost_equal(&v));
+        assert!(!x.is_almost_equal(&w));
+
+        let w = Vec3::new(1.0 + 1e-7, 2.0, 3.0);
+        let x = Vec3::new(1.0 + 1e-11, 2.0, 3.0);
+
+        assert!(v.is_almost_equal(&v));
+        assert!(!v.is_almost_equal(&w));
+        assert!(v.is_almost_equal(&x));
+    }
+
+    #[test]
+    fn vec3_arithmetic() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let w = Vec3::new(4.0, 5.0, 6.0);
 
         let u = v + w;
         assert_eq!([u[0], u[1], u[2]], [5.0, 7.0, 9.0]);
@@ -408,25 +464,17 @@ mod tests {
         let u = w * v;
         assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
         let u = v / w;
-        assert_eq!(
-            vec3_to_fixed([u[0], u[1], u[2]]),
-            vec3_to_fixed([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
-        );
+        assert!(u.is_almost_equal(&Vec3::new(1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0)));
+
         let u = w / v;
-        assert_eq!(
-            vec3_to_fixed([u[0], u[1], u[2]]),
-            vec3_to_fixed([4.0 / 1.0, 5.0 / 2.0, 6.0 / 3.0])
-        );
+        assert!(u.is_almost_equal(&Vec3::new(4.0 / 1.0, 5.0 / 2.0, 6.0 / 3.0)));
         let mut u = v;
         u *= w;
         assert_eq!([u[0], u[1], u[2]], [4.0, 10.0, 18.0]);
         u /= w;
         assert_eq!([u[0], u[1], u[2]], [1.0, 2.0, 3.0]);
         u /= w;
-        assert_eq!(
-            vec3_to_fixed([u[0], u[1], u[2]]),
-            vec3_to_fixed([1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0])
-        );
+        assert!(u.is_almost_equal(&Vec3::new(1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0)));
 
         let u = 5.0 * v;
         assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
@@ -439,22 +487,67 @@ mod tests {
         u /= 2.0;
         assert_eq!([u[0], u[1], u[2]], [5.0, 10.0, 15.0]);
         u /= 3.0;
-        assert_eq!(
-            vec3_to_fixed([u[0], u[1], u[2]]),
-            vec3_to_fixed([5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0])
-        );
+        assert!(u.is_almost_equal(&Vec3::new(5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0)));
+    }
+
+    #[test]
+    fn vec3_dot() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let w = Vec3::new(4.0, 5.0, 6.0);
+
+        let u = Vec3::dot(&v, &w);
+        assert_eq!(u, 32.0);
+        let u = Vec3::dot(&w, &v);
+        assert_eq!(u, 32.0);
+    }
+
+    #[test]
+    fn vec3_len() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+
+        assert_eq!(v.len_sqr(), 14.0);
+        assert_eq!(v.len_sqr(), Vec3::dot(&v, &v));
+        assert_eq!(v.len(), f64::sqrt(14.0));
+    }
+
+    #[test]
+    fn vec3_cross() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let w = Vec3::new(4.0, 5.0, 6.0);
+
+        let u = Vec3::cross(&v, &w);
+        assert_eq!([u[0], u[1], u[2]], [-3.0, 6.0, -3.0]);
+        let u = Vec3::cross(&w, &v);
+        assert_eq!([u[0], u[1], u[2]], [3.0, -6.0, 3.0]);
+    }
+
+    #[test]
+    fn vec3_unit() {
+        let u = Vec3::new(5.0 / 3.0, 10.0 / 3.0, 15.0 / 3.0);
 
         let u = u.unit();
-        assert_eq!(vec3_to_fixed([u[0], u[1], u[2]]), [267261, 534522, 801784]);
+        assert!(u.is_almost_equal(&Vec3::new(0.26726124, 0.53452248, 0.80178372)));
+    }
 
-        let u = v.dot(&w);
-        assert_eq!(u, 32.0);
-        let u = w.dot(&v);
-        assert_eq!(u, 32.0);
+    #[test]
+    fn vec3_reflect() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let normal = Vec3::new(4.0, 5.0, 6.0);
 
-        let u = v.cross(&w);
-        assert_eq!([u[0], u[1], u[2]], [-3.0, 6.0, -3.0]);
-        let u = w.cross(&v);
-        assert_eq!([u[0], u[1], u[2]], [3.0, -6.0, 3.0]);
+        assert!(Vec3::reflect(&v, &normal).is_almost_equal(&Vec3::new(-255.0, -318.0, -381.0)));
+    }
+
+    #[test]
+    fn vec3_refract() {
+        let v = Vec3::new(1.0, 2.0, 3.0);
+        let normal = Vec3::new(4.0, 5.0, 6.0);
+
+        assert!(
+            Vec3::refract(&v, &normal, 1.0 / 1.5).is_almost_equal(&Vec3::new(
+                -823.73154128,
+                -1029.16442660,
+                -1234.59731192
+            ))
+        );
     }
 }

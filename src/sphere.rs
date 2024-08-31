@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
-use crate::{Interval, Point3, Ray};
+use crate::{Interval, Point3, Ray, Vec3};
 
 /// Sphere object in world space and material.
 #[derive(Clone)]
@@ -28,7 +28,7 @@ impl Hittable for Sphere {
         // Use discriminant to determine number of intersections
         let oc = ray.origin() - &self.center;
         let a = ray.direction().len_sqr();
-        let half_b = oc.dot(ray.direction());
+        let half_b = Vec3::dot(&oc, ray.direction());
         let c = oc.len_sqr() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;
