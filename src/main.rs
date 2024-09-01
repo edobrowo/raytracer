@@ -1,6 +1,6 @@
 use raytracer::camera::Camera;
 use raytracer::hittable::HittableList;
-use raytracer::material::{Dielectric, Lambertian, Metallic};
+use raytracer::material::{Dielectric, Lambertian, Metallic, NormalMap};
 use raytracer::sphere::Sphere;
 use raytracer::Color;
 use raytracer::Point3;
@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let samples_per_pixel = 100;
     let max_depth = 50;
 
-    let vfov = 90.0;
+    let vfov = 20.0;
     let look_from = Point3::new(-2.0, 2.0, 1.0);
     let look_at = Point3::new(0.0, 0.0, -1.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);

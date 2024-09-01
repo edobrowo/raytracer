@@ -178,3 +178,34 @@ impl Material for Dielectric {
         Some((scattered, attenuation))
     }
 }
+
+/// Normal map with Lambertian scattering.
+#[derive(Debug, Clone)]
+pub struct NormalMap {}
+
+impl NormalMap {
+    /// Creates a new dielectric material.
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Material for NormalMap {
+    #[allow(unused)]
+    fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        let n = rec.normal;
+        let scattered = Ray::new(rec.p, n);
+
+        let attenuation = Color::new(n.x() as f32, n.y() as f32, n.z() as f32);
+
+        // Generate the reflected ray in the unit circle from the surface normal.
+        let scatter_direction = rec.normal + Vec3::random_unit();
+
+        // Use the surface normal if the generated ray is degenerate.
+        if !scatter_direction.is_almost_zero() {
+            Some((Ray::new(rec.p, scatter_direction), attenuation))
+        } else {
+            Some((Ray::new(rec.p, rec.normal), attenuation))
+        }
+    }
+}
