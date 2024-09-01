@@ -1,10 +1,10 @@
 use raytracer::camera::Camera;
 use raytracer::hittable::HittableList;
-use raytracer::image;
 use raytracer::material::{Dielectric, Lambertian, Metallic};
 use raytracer::sphere::Sphere;
 use raytracer::Color;
 use raytracer::Point3;
+use raytracer::{image, Vec3};
 use std::error::Error;
 use std::sync::Arc;
 
@@ -34,7 +34,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let samples_per_pixel = 100;
     let max_depth = 50;
 
-    let camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth)?;
+    let vfov = 90.0;
+    let look_from = Point3::new(-2.0, 2.0, 1.0);
+    let look_at = Point3::new(0.0, 0.0, -1.0);
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+
+    let camera = Camera::new(
+        aspect_ratio,
+        image_width,
+        samples_per_pixel,
+        max_depth,
+        vfov,
+        look_from,
+        look_at,
+        vup,
+    )?;
 
     // Renderer setup.
     use std::time::Instant;
