@@ -1,5 +1,5 @@
 use crate::almost::AlmostPartialEq;
-use crate::util;
+use crate::util::random;
 use std::fmt;
 use std::ops;
 
@@ -115,8 +115,8 @@ impl Vec3 {
     /// Generates a random vector on the unit disk.
     pub fn random_on_unit_disk() -> Self {
         loop {
-            let x = util::gen_between(-1.0, 1.0);
-            let y = util::gen_between(-1.0, 1.0);
+            let x = random::gen_range(-1.0, 1.0);
+            let y = random::gen_range(-1.0, 1.0);
             let p = Self::new(x, y, 0.0);
             if p.len_sqr() < 1.0 {
                 return p;
@@ -126,15 +126,15 @@ impl Vec3 {
 
     /// Generate a random vector where each component has value between 0 and 1.
     pub fn random() -> Self {
-        Self::new(util::gen_unit(), util::gen_unit(), util::gen_unit())
+        Self::new(random::gen_unit(), random::gen_unit(), random::gen_unit())
     }
 
     /// Generate a random vector scaled to within the given range.
     fn random_in_range(min: f64, max: f64) -> Self {
         Self::new(
-            util::gen_between(min, max),
-            util::gen_between(min, max),
-            util::gen_between(min, max),
+            random::gen_range(min, max),
+            random::gen_range(min, max),
+            random::gen_range(min, max),
         )
     }
 

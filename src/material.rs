@@ -1,5 +1,5 @@
 use crate::hittable::{HitRecord, Orientation};
-use crate::{util, Color, Ray, Vec3};
+use crate::{util::random, Color, Ray, Vec3};
 
 /// Specifies how rays scatter off of geometry.
 pub trait Material {
@@ -69,7 +69,7 @@ impl Material for LambertianRandom {
     #[allow(unused)]
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         // Random test on whether to scatter
-        let r = util::gen_unit();
+        let r = random::gen_unit();
         if r <= self.p {
             return None;
         }
@@ -102,7 +102,7 @@ impl Metallic {
     pub fn new(albedo: &Color, fuzz: f64) -> Self {
         Metallic {
             albedo: *albedo,
-            fuzz: f64::min(fuzz, 1.0),
+            fuzz: f64::max(fuzz, 1.0),
         }
     }
 }
@@ -162,7 +162,7 @@ impl Material for Dielectric {
         let total_internal_reflection = ri * sin_theta > 1.0;
 
         let schlick = Dielectric::reflectance_schlick(cos_theta, ri);
-        let reflect_schlick = schlick > util::gen_unit();
+        let reflect_schlick = schlick > random::gen_unit();
 
         let direction = if total_internal_reflection || reflect_schlick {
             Vec3::reflect(&unit_direction, &rec.normal)

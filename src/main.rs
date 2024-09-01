@@ -39,6 +39,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let look_at = Point3::new(0.0, 0.0, -1.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
 
+    let defocus_angle = 10.0;
+    let focus_dist = (look_at - look_from).len();
+
     let camera = Camera::new(
         aspect_ratio,
         image_width,
@@ -48,6 +51,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         look_from,
         look_at,
         vup,
+        defocus_angle,
+        focus_dist,
     )?;
 
     // Renderer setup.
