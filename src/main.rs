@@ -1,6 +1,6 @@
 use raytracer::camera::Camera;
 use raytracer::hittable::HittableList;
-use raytracer::material::{Dielectric, Lambertian, Metallic, NormalMap};
+use raytracer::material::{Dielectric, Lambertian, Metallic};
 use raytracer::sphere::Sphere;
 use raytracer::Color;
 use raytracer::Point3;

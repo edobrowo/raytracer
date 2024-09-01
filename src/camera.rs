@@ -1,5 +1,4 @@
-use crate::{hittable::Hittable, Color, Error, Interval, Point3, Ray, Vec3};
-use rand::{self, Rng};
+use crate::{hittable::Hittable, util, Color, Error, Interval, Point3, Ray, Vec3};
 
 /// Camera information that defines the viewport into worldspace.
 pub struct Camera {
@@ -43,8 +42,11 @@ pub struct Camera {
     pixel_delta_v: Vec3,
 
     /// Camera coordinate frame basis.
+    #[allow(unused)]
     u: Vec3,
+    #[allow(unused)]
     v: Vec3,
+    #[allow(unused)]
     w: Vec3,
 }
 
@@ -177,8 +179,8 @@ impl Camera {
 
     /// Sample within a pixel square.
     fn pixel_sample_square(&self) -> Vec3 {
-        let px = -0.5 * rand::thread_rng().gen::<f64>();
-        let py = -0.5 * rand::thread_rng().gen::<f64>();
+        let px = util::gen_unit() - 0.5;
+        let py = util::gen_unit() - 0.5;
 
         px * self.pixel_delta_u + py * self.pixel_delta_v
     }

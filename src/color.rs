@@ -1,3 +1,4 @@
+use crate::almost::AlmostPartialEq;
 use std::fmt;
 use std::ops;
 
@@ -12,9 +13,6 @@ pub struct Color {
 impl Color {
     /// Used to clamp color values when converting to byte representations
     const INTENSITY: Interval = Interval::new(0.0, 0.999999);
-
-    /// Minimum error for color operations.
-    const ERROR: f32 = 1e-6;
 
     pub fn new(r: f32, g: f32, b: f32) -> Self {
         Self {
@@ -38,15 +36,13 @@ impl Color {
     }
 
     /// Determines whether the given color is approximately all zero (black in color).
-    pub fn is_almost_zero(&self) -> bool {
-        self.channels
-            .iter()
-            .all(|&channel| f32::abs(channel) < Self::ERROR)
+    pub fn almost_zero(&self) -> bool {
+        self.channels.iter().all(|&channel| channel.almost_zero())
     }
 
     /// Determines whether two colors are approximately equal.
-    pub fn is_almost_equal(&self, color: &Self) -> bool {
-        Self::is_almost_zero(&(self - color))
+    pub fn almost_eq(&self, color: &Self) -> bool {
+        (self - color).almost_zero()
     }
 }
 
@@ -323,13 +319,13 @@ mod tests {
     #[test]
     fn _almost_zero() {
         let c = Color::new(0.0, 0.0, 0.0);
-        assert!(c.is_almost_zero());
+        assert!(c.almost_zero());
 
         let c = Color::new(0.0, 0.001, 0.0);
-        assert!(!c.is_almost_zero());
+        assert!(!c.almost_zero());
 
         let c = Color::new(0.0, 1e-7, 0.0);
-        assert!(c.is_almost_zero());
+        assert!(c.almost_zero());
     }
 
     #[test]
@@ -338,24 +334,24 @@ mod tests {
         let d = Color::new(0.4, 0.5, 0.6);
         let e = Color::new(1.0, 0.0, 1.0);
 
-        assert!(c.is_almost_equal(&c));
-        assert!(!c.is_almost_equal(&d));
-        assert!(!c.is_almost_equal(&e));
+        assert!(c.almost_eq(&c));
+        assert!(!c.almost_eq(&d));
+        assert!(!c.almost_eq(&e));
 
-        assert!(d.is_almost_equal(&d));
-        assert!(!d.is_almost_equal(&c));
-        assert!(!d.is_almost_equal(&e));
+        assert!(d.almost_eq(&d));
+        assert!(!d.almost_eq(&c));
+        assert!(!d.almost_eq(&e));
 
-        assert!(e.is_almost_equal(&e));
-        assert!(!e.is_almost_equal(&c));
-        assert!(!e.is_almost_equal(&d));
+        assert!(e.almost_eq(&e));
+        assert!(!e.almost_eq(&c));
+        assert!(!e.almost_eq(&d));
 
         let d = Color::new(0.1 + 1e-5, 0.2, 0.3);
         let e = Color::new(0.1 + 1e-8, 0.2, 0.3);
 
-        assert!(c.is_almost_equal(&c));
-        assert!(!c.is_almost_equal(&d));
-        assert!(c.is_almost_equal(&e));
+        assert!(c.almost_eq(&c));
+        assert!(!c.almost_eq(&d));
+        assert!(c.almost_eq(&e));
     }
 
     #[test]
@@ -364,54 +360,54 @@ mod tests {
         let d = Color::new(0.4, 0.5, 0.6);
 
         let e = c + d;
-        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        assert!(e.almost_eq(&Color::new(0.5, 0.7, 0.9)));
         let e = d + c;
-        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        assert!(e.almost_eq(&Color::new(0.5, 0.7, 0.9)));
         let mut e = c;
-        assert!(e.is_almost_equal(&Color::new(0.1, 0.2, 0.3)));
+        assert!(e.almost_eq(&Color::new(0.1, 0.2, 0.3)));
         e += d;
-        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        assert!(e.almost_eq(&Color::new(0.5, 0.7, 0.9)));
         e += c;
-        assert!(e.is_almost_equal(&Color::new(0.6, 0.9, 1.2)));
+        assert!(e.almost_eq(&Color::new(0.6, 0.9, 1.2)));
 
         let e = c - d;
-        assert!(e.is_almost_equal(&Color::new(-0.3, -0.3, -0.3)));
+        assert!(e.almost_eq(&Color::new(-0.3, -0.3, -0.3)));
         let e = d - c;
-        assert!(e.is_almost_equal(&Color::new(0.3, 0.3, 0.3)));
+        assert!(e.almost_eq(&Color::new(0.3, 0.3, 0.3)));
         let mut e = Color::new(0.0, 0.0, 0.0);
         e += c + d;
-        assert!(e.is_almost_equal(&Color::new(0.5, 0.7, 0.9)));
+        assert!(e.almost_eq(&Color::new(0.5, 0.7, 0.9)));
         e -= c;
-        assert!(e.is_almost_equal(&Color::new(0.4, 0.5, 0.6)));
+        assert!(e.almost_eq(&Color::new(0.4, 0.5, 0.6)));
 
         let e = 2.0 * c;
-        assert!(e.is_almost_equal(&Color::new(0.2, 0.4, 0.6)));
+        assert!(e.almost_eq(&Color::new(0.2, 0.4, 0.6)));
         let e = c * 2.0;
-        assert!(e.is_almost_equal(&Color::new(0.2, 0.4, 0.6)));
+        assert!(e.almost_eq(&Color::new(0.2, 0.4, 0.6)));
         let mut e = 3.0 * c;
-        assert!(e.is_almost_equal(&Color::new(0.3, 0.6, 0.9)));
+        assert!(e.almost_eq(&Color::new(0.3, 0.6, 0.9)));
         e *= 1.1;
-        assert!(e.is_almost_equal(&Color::new(0.33, 0.66, 0.99)));
+        assert!(e.almost_eq(&Color::new(0.33, 0.66, 0.99)));
         e /= 2.0;
-        assert!(e.is_almost_equal(&Color::new(0.33 / 2.0, 0.66 / 2.0, 0.99 / 2.0)));
+        assert!(e.almost_eq(&Color::new(0.33 / 2.0, 0.66 / 2.0, 0.99 / 2.0)));
         e /= 3.0;
-        assert!(e.is_almost_equal(&Color::new(0.33 / 6.0, 0.66 / 6.0, 0.99 / 6.0)));
+        assert!(e.almost_eq(&Color::new(0.33 / 6.0, 0.66 / 6.0, 0.99 / 6.0)));
 
         let e = c * d;
-        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        assert!(e.almost_eq(&Color::new(0.04, 0.1, 0.18)));
         let e = d * c;
-        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        assert!(e.almost_eq(&Color::new(0.04, 0.1, 0.18)));
         let e = c / d;
-        assert!(e.is_almost_equal(&Color::new(0.1 / 0.4, 0.2 / 0.5, 0.3 / 0.6)));
+        assert!(e.almost_eq(&Color::new(0.1 / 0.4, 0.2 / 0.5, 0.3 / 0.6)));
         let e = d / c;
-        assert!(e.is_almost_equal(&Color::new(4.0, 2.5, 2.0)));
+        assert!(e.almost_eq(&Color::new(4.0, 2.5, 2.0)));
         let mut e = c;
         e *= d;
-        assert!(e.is_almost_equal(&Color::new(0.04, 0.1, 0.18)));
+        assert!(e.almost_eq(&Color::new(0.04, 0.1, 0.18)));
         e /= d;
-        assert!(e.is_almost_equal(&Color::new(0.1, 0.2, 0.3)));
+        assert!(e.almost_eq(&Color::new(0.1, 0.2, 0.3)));
         e /= d;
-        assert!(e.is_almost_equal(&Color::new(1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0)));
+        assert!(e.almost_eq(&Color::new(1.0 / 4.0, 2.0 / 5.0, 3.0 / 6.0)));
     }
 
     #[test]
@@ -426,15 +422,13 @@ mod tests {
     #[test]
     fn color_gamma_correct() {
         let c = Color::new(0.1, 0.2, 0.3);
-        assert!(c.gamma_correct().is_almost_equal(&Color::new(
+        assert!(c.gamma_correct().almost_eq(&Color::new(
             f32::sqrt(0.1),
             f32::sqrt(0.2),
             f32::sqrt(0.3)
         )));
 
         let c = Color::new(0.0, 1.0, 0.0);
-        assert!(c
-            .gamma_correct()
-            .is_almost_equal(&Color::new(0.0, 1.0, 0.0)));
+        assert!(c.gamma_correct().almost_eq(&Color::new(0.0, 1.0, 0.0)));
     }
 }

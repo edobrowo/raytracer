@@ -1,8 +1,5 @@
-use crate::{
-    hittable::{HitRecord, Orientation},
-    Color, Ray, Vec3,
-};
-use rand::{self, Rng};
+use crate::hittable::{HitRecord, Orientation};
+use crate::{util, Color, Ray, Vec3};
 
 /// Specifies how rays scatter off of geometry.
 pub trait Material {
@@ -34,7 +31,7 @@ impl Material for Lambertian {
         let scatter_direction = rec.normal + Vec3::random_unit();
 
         // Use the surface normal if the generated ray is degenerate.
-        if !scatter_direction.is_almost_zero() {
+        if !scatter_direction.almost_zero() {
             Some((Ray::new(rec.p, scatter_direction), self.albedo))
         } else {
             Some((Ray::new(rec.p, rec.normal), self.albedo))
@@ -49,17 +46,17 @@ pub struct LambertianRandom {
     albedo: Color,
 
     /// Probability of scattering.
-    p: f32,
+    p: f64,
 }
 
 impl LambertianRandom {
     /// Create a Lambertian material. Rays will scatter with probability `p`.
-    pub fn new(albedo: &Color, p: f32, is_attenuated: bool) -> Self {
+    pub fn new(albedo: &Color, p: f64, is_attenuated: bool) -> Self {
         assert!((0.0..=1.0).contains(&p));
 
         let albedo = if is_attenuated {
             // When attenuated, scale the albedo by `p`.
-            albedo / p
+            albedo / p as f32
         } else {
             *albedo
         };
@@ -72,7 +69,7 @@ impl Material for LambertianRandom {
     #[allow(unused)]
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         // Random test on whether to scatter
-        let r = rand::thread_rng().gen::<f32>();
+        let r = util::gen_unit();
         if r <= self.p {
             return None;
         }
@@ -81,7 +78,7 @@ impl Material for LambertianRandom {
         let scatter_direction = rec.normal + Vec3::random_unit();
 
         // Use the surface normal if the generated ray is degenerate.
-        if !scatter_direction.is_almost_zero() {
+        if !scatter_direction.almost_zero() {
             Some((Ray::new(rec.p, scatter_direction), self.albedo))
         } else {
             Some((Ray::new(rec.p, rec.normal), self.albedo))
@@ -165,7 +162,7 @@ impl Material for Dielectric {
         let total_internal_reflection = ri * sin_theta > 1.0;
 
         let schlick = Dielectric::reflectance_schlick(cos_theta, ri);
-        let reflect_schlick = schlick > rand::thread_rng().gen::<f64>();
+        let reflect_schlick = schlick > util::gen_unit();
 
         let direction = if total_internal_reflection || reflect_schlick {
             Vec3::reflect(&unit_direction, &rec.normal)
@@ -202,7 +199,7 @@ impl Material for NormalMap {
         let scatter_direction = rec.normal + Vec3::random_unit();
 
         // Use the surface normal if the generated ray is degenerate.
-        if !scatter_direction.is_almost_zero() {
+        if !scatter_direction.almost_zero() {
             Some((Ray::new(rec.p, scatter_direction), attenuation))
         } else {
             Some((Ray::new(rec.p, rec.normal), attenuation))
